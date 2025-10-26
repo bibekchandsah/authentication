@@ -269,6 +269,16 @@ body {
     box-shadow: 0 8px 20px rgba(255, 193, 7, 0.3);
 }
 
+.export-btn {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+}
+
+.export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(23, 162, 184, 0.3);
+}
+
 .admin-warning {
     background: #fff3cd;
     color: #856404;

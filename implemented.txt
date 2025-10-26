@@ -31,7 +31,8 @@ Login: Session created with 30-minute expiry
 Activity Tracking: User actions reset the expiry timer
 Warning Phase: 5 minutes before expiry, modal appears
 Extension Options: User can extend or logout immediately
-
+Logging System: Track login attempts, IPs, and timestamps for security audits.
+Activity Logs: Display a table of last login time, device info, and access history.
 
 
 

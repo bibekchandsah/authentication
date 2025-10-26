@@ -10,7 +10,129 @@ const PORT = process.env.PORT || 3000;
 
 // File to store the secret key persistently
 const SECRET_FILE = path.join(__dirname, '.secret-key.json');
+const LOGS_FILE = path.join(__dirname, '.security-logs.json');
 const SERVICE_NAME = 'Secure Webpage - Bibek Sha';
+
+// Security logging configuration
+const LOGGING_CONFIG = {
+  maxLogEntries: 1000,        // Maximum log entries to keep
+  logRetentionDays: 30,       // Keep logs for 30 days
+  cleanupInterval: 24 * 60 * 60 * 1000  // Cleanup every 24 hours
+};
+
+// In-memory logs (backed by file)
+let securityLogs = [];
+
+// Function to load existing logs
+function loadSecurityLogs() {
+  try {
+    if (fs.existsSync(LOGS_FILE)) {
+      const data = fs.readFileSync(LOGS_FILE, 'utf8');
+      const logsData = JSON.parse(data);
+      securityLogs = logsData.logs || [];
+      console.log(`📋 Loaded ${securityLogs.length} security log entries`);
+    }
+  } catch (error) {
+    console.log('⚠️ Could not load existing logs, starting fresh');
+    securityLogs = [];
+  }
+}
+
+// Function to save logs to file
+function saveSecurityLogs() {
+  try {
+    const logsData = {
+      logs: securityLogs,
+      lastUpdated: new Date().toISOString(),
+      totalEntries: securityLogs.length
+    };
+    fs.writeFileSync(LOGS_FILE, JSON.stringify(logsData, null, 2));
+  } catch (error) {
+    console.error('❌ Failed to save security logs:', error.message);
+  }
+}
+
+// Function to add security log entry
+function addSecurityLog(type, details) {
+  const logEntry = {
+    id: Date.now() + Math.random().toString(36).substr(2, 9),
+    timestamp: new Date().toISOString(),
+    type: type, // 'login_success', 'login_failed', 'logout', 'session_expired', 'rate_limited', 'admin_action'
+    ...details
+  };
+  
+  securityLogs.unshift(logEntry); // Add to beginning
+  
+  // Limit log entries
+  if (securityLogs.length > LOGGING_CONFIG.maxLogEntries) {
+    securityLogs = securityLogs.slice(0, LOGGING_CONFIG.maxLogEntries);
+  }
+  
+  // Save to file
+  saveSecurityLogs();
+  
+  return logEntry;
+}
+
+// Function to get device info from user agent
+function parseUserAgent(userAgent) {
+  if (!userAgent) return { browser: 'Unknown', os: 'Unknown', device: 'Unknown' };
+  
+  // Simple user agent parsing
+  let browser = 'Unknown';
+  let os = 'Unknown';
+  let device = 'Desktop';
+  
+  // Browser detection
+  if (userAgent.includes('Chrome')) browser = 'Chrome';
+  else if (userAgent.includes('Firefox')) browser = 'Firefox';
+  else if (userAgent.includes('Safari')) browser = 'Safari';
+  else if (userAgent.includes('Edge')) browser = 'Edge';
+  else if (userAgent.includes('Opera')) browser = 'Opera';
+  
+  // OS detection
+  if (userAgent.includes('Windows')) os = 'Windows';
+  else if (userAgent.includes('Mac')) os = 'macOS';
+  else if (userAgent.includes('Linux')) os = 'Linux';
+  else if (userAgent.includes('Android')) os = 'Android';
+  else if (userAgent.includes('iOS')) os = 'iOS';
+  
+  // Device detection
+  if (userAgent.includes('Mobile') || userAgent.includes('Android')) device = 'Mobile';
+  else if (userAgent.includes('Tablet') || userAgent.includes('iPad')) device = 'Tablet';
+  
+  return { browser, os, device };
+}
+
+// Function to get location info (basic)
+function getLocationInfo(ip) {
+  // In production, you could use a GeoIP service
+  // For now, just basic classification
+  if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+    return { location: 'Local Network', country: 'Local', city: 'Local' };
+  }
+  return { location: 'External', country: 'Unknown', city: 'Unknown' };
+}
+
+// Cleanup old logs
+function cleanupOldLogs() {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - LOGGING_CONFIG.logRetentionDays);
+  
+  const initialCount = securityLogs.length;
+  securityLogs = securityLogs.filter(log => new Date(log.timestamp) > cutoffDate);
+  
+  if (securityLogs.length !== initialCount) {
+    console.log(`🧹 Cleaned up ${initialCount - securityLogs.length} old log entries`);
+    saveSecurityLogs();
+  }
+}
+
+// Load logs on startup
+loadSecurityLogs();
+
+// Setup cleanup interval
+setInterval(cleanupOldLogs, LOGGING_CONFIG.cleanupInterval);
 
 // Function to get or create persistent secret key
 function getOrCreateSecret() {
@@ -216,7 +338,26 @@ app.use((req, res, next) => {
     // Check if session should expire due to inactivity
     const timeSinceLastActivity = now - (req.session.lastActivity || req.session.createdAt);
     if (timeSinceLastActivity > SESSION_CONFIG.maxAge) {
+      const clientIP = getClientIP(req);
+      const userAgent = req.headers['user-agent'] || '';
+      const deviceInfo = parseUserAgent(userAgent);
+      const sessionDuration = Math.floor((now - new Date(req.session.createdAt).getTime()) / 1000 / 60);
+      
       console.log(`⏰ Session expired for user due to inactivity`);
+      
+      // Log session expiry
+      addSecurityLog('session_expired', {
+        ip: clientIP,
+        userAgent: userAgent,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        device: deviceInfo.device,
+        sessionId: req.sessionID,
+        sessionDuration: `${sessionDuration} minutes`,
+        inactivityTime: `${Math.floor(timeSinceLastActivity / 1000 / 60)} minutes`,
+        reason: 'Session expired due to inactivity'
+      });
+      
       req.session.destroy();
       if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
         return res.status(401).json({ 
@@ -252,15 +393,40 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
-// Login POST endpoint with rate limiting
+// Login POST endpoint with rate limiting and comprehensive logging
 app.post('/login', (req, res) => {
   const { authCode } = req.body;
   const clientIP = getClientIP(req);
+  const userAgent = req.headers['user-agent'] || '';
+  const deviceInfo = parseUserAgent(userAgent);
+  const locationInfo = getLocationInfo(clientIP);
+  
+  // Common log details
+  const logDetails = {
+    ip: clientIP,
+    userAgent: userAgent,
+    browser: deviceInfo.browser,
+    os: deviceInfo.os,
+    device: deviceInfo.device,
+    location: locationInfo.location,
+    country: locationInfo.country,
+    city: locationInfo.city,
+    authCode: authCode ? authCode.substring(0, 2) + '****' : 'none' // Partial code for security
+  };
   
   // Check rate limiting
   const rateLimitCheck = isRateLimited(clientIP);
   if (rateLimitCheck.limited) {
     console.log(`🚫 Rate limited login attempt from IP: ${clientIP}`);
+    
+    // Log rate limited attempt
+    addSecurityLog('rate_limited', {
+      ...logDetails,
+      reason: 'Too many failed attempts',
+      remainingTime: rateLimitCheck.remainingTime,
+      totalAttempts: rateLimitCheck.attempts
+    });
+    
     return res.status(429).json({ 
       success: false, 
       message: `Too many failed attempts. Account locked for ${rateLimitCheck.remainingTime} more minutes.`,
@@ -283,7 +449,19 @@ app.post('/login', (req, res) => {
     recordSuccessfulLogin(clientIP);
     req.session.authenticated = true;
     req.session.user = 'Authorized User';
+    req.session.loginTime = new Date().toISOString();
+    req.session.loginIP = clientIP;
+    req.session.deviceInfo = deviceInfo;
+    
     console.log(`✅ Successful login from IP: ${clientIP}`);
+    
+    // Log successful login
+    addSecurityLog('login_success', {
+      ...logDetails,
+      sessionId: req.sessionID,
+      message: 'Successful authentication'
+    });
+    
     res.json({ success: true, message: 'Authentication successful' });
   } else {
     // Failed login - record attempt
@@ -292,6 +470,14 @@ app.post('/login', (req, res) => {
     const remainingAttempts = RATE_LIMIT_CONFIG.maxAttempts - (attemptsInfo ? attemptsInfo.count : 0);
     
     console.log(`❌ Failed login attempt from IP: ${clientIP} (${attemptsInfo ? attemptsInfo.count : 1}/${RATE_LIMIT_CONFIG.maxAttempts})`);
+    
+    // Log failed login
+    addSecurityLog('login_failed', {
+      ...logDetails,
+      reason: 'Invalid authentication code',
+      attemptNumber: attemptsInfo ? attemptsInfo.count : 1,
+      remainingAttempts: Math.max(0, remainingAttempts)
+    });
     
     res.status(401).json({ 
       success: false, 
@@ -347,12 +533,34 @@ app.get('/', (req, res) => {
   }
 });
 
-// Logout endpoint
+// Logout endpoint with logging
 app.post('/logout', (req, res) => {
+  const clientIP = getClientIP(req);
+  const userAgent = req.headers['user-agent'] || '';
+  const deviceInfo = parseUserAgent(userAgent);
+  const sessionDuration = req.session && req.session.loginTime 
+    ? Math.floor((Date.now() - new Date(req.session.loginTime).getTime()) / 1000 / 60) // minutes
+    : 0;
+  
+  // Log logout
+  addSecurityLog('logout', {
+    ip: clientIP,
+    userAgent: userAgent,
+    browser: deviceInfo.browser,
+    os: deviceInfo.os,
+    device: deviceInfo.device,
+    sessionId: req.sessionID,
+    sessionDuration: `${sessionDuration} minutes`,
+    logoutType: 'manual',
+    message: 'User initiated logout'
+  });
+  
   req.session.destroy((err) => {
     if (err) {
+      console.error('Logout error:', err);
       return res.status(500).json({ success: false, message: 'Logout failed' });
     }
+    console.log(`👋 User logged out from IP: ${clientIP}`);
     res.json({ success: true, message: 'Logged out successfully' });
   });
 });
@@ -466,9 +674,177 @@ app.post('/admin/clear-rate-limit', requireAuth, (req, res) => {
 // Admin: Clear all rate limits (protected)
 app.post('/admin/clear-all-rate-limits', requireAuth, (req, res) => {
   const clearedCount = loginAttempts.size;
+  const clientIP = getClientIP(req);
+  
   loginAttempts.clear();
   console.log(`🔓 Admin cleared all rate limits (${clearedCount} IPs)`);
+  
+  // Log admin action
+  addSecurityLog('admin_action', {
+    ip: clientIP,
+    action: 'clear_all_rate_limits',
+    details: `Cleared rate limits for ${clearedCount} IPs`,
+    userAgent: req.headers['user-agent'] || ''
+  });
+  
   res.json({ success: true, message: `Cleared rate limits for ${clearedCount} IPs` });
+});
+
+// Admin: View security logs (protected)
+app.get('/admin/security-logs', requireAuth, (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const type = req.query.type || 'all';
+  const startDate = req.query.startDate;
+  const endDate = req.query.endDate;
+  
+  let filteredLogs = [...securityLogs];
+  
+  // Filter by type
+  if (type !== 'all') {
+    filteredLogs = filteredLogs.filter(log => log.type === type);
+  }
+  
+  // Filter by date range
+  if (startDate) {
+    filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) >= new Date(startDate));
+  }
+  if (endDate) {
+    filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) <= new Date(endDate));
+  }
+  
+  // Pagination
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
+  
+  // Statistics
+  const stats = {
+    total: securityLogs.length,
+    filtered: filteredLogs.length,
+    loginSuccess: securityLogs.filter(log => log.type === 'login_success').length,
+    loginFailed: securityLogs.filter(log => log.type === 'login_failed').length,
+    rateLimited: securityLogs.filter(log => log.type === 'rate_limited').length,
+    logouts: securityLogs.filter(log => log.type === 'logout').length,
+    adminActions: securityLogs.filter(log => log.type === 'admin_action').length,
+    uniqueIPs: [...new Set(securityLogs.map(log => log.ip))].length,
+    last24Hours: securityLogs.filter(log => 
+      new Date(log.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+    ).length
+  };
+  
+  res.json({
+    logs: paginatedLogs,
+    pagination: {
+      page,
+      limit,
+      total: filteredLogs.length,
+      pages: Math.ceil(filteredLogs.length / limit)
+    },
+    filters: { type, startDate, endDate },
+    statistics: stats
+  });
+});
+
+// Admin: Get security dashboard summary (protected)
+app.get('/admin/security-dashboard', requireAuth, (req, res) => {
+  const now = new Date();
+  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  // Recent activity
+  const recentLogs = securityLogs.filter(log => new Date(log.timestamp) > last24h);
+  const weeklyLogs = securityLogs.filter(log => new Date(log.timestamp) > last7d);
+  
+  // Top IPs
+  const ipCounts = {};
+  securityLogs.forEach(log => {
+    ipCounts[log.ip] = (ipCounts[log.ip] || 0) + 1;
+  });
+  const topIPs = Object.entries(ipCounts)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10)
+    .map(([ip, count]) => ({ ip, count }));
+  
+  // Failed login attempts by IP
+  const failedAttempts = {};
+  securityLogs
+    .filter(log => log.type === 'login_failed')
+    .forEach(log => {
+      failedAttempts[log.ip] = (failedAttempts[log.ip] || 0) + 1;
+    });
+  const topFailedIPs = Object.entries(failedAttempts)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5)
+    .map(([ip, count]) => ({ ip, count }));
+  
+  // Browser/OS statistics
+  const browsers = {};
+  const operatingSystems = {};
+  securityLogs.forEach(log => {
+    if (log.browser) browsers[log.browser] = (browsers[log.browser] || 0) + 1;
+    if (log.os) operatingSystems[log.os] = (operatingSystems[log.os] || 0) + 1;
+  });
+  
+  res.json({
+    summary: {
+      totalLogs: securityLogs.length,
+      last24Hours: recentLogs.length,
+      last7Days: weeklyLogs.length,
+      successfulLogins: securityLogs.filter(log => log.type === 'login_success').length,
+      failedLogins: securityLogs.filter(log => log.type === 'login_failed').length,
+      rateLimitedAttempts: securityLogs.filter(log => log.type === 'rate_limited').length,
+      uniqueIPs: Object.keys(ipCounts).length
+    },
+    recentActivity: recentLogs.slice(0, 10),
+    topIPs,
+    topFailedIPs,
+    browsers: Object.entries(browsers).sort(([,a], [,b]) => b - a).slice(0, 5),
+    operatingSystems: Object.entries(operatingSystems).sort(([,a], [,b]) => b - a).slice(0, 5),
+    timeline: {
+      last24h: recentLogs.length,
+      last7d: weeklyLogs.length,
+      thisMonth: securityLogs.filter(log => 
+        new Date(log.timestamp).getMonth() === now.getMonth() &&
+        new Date(log.timestamp).getFullYear() === now.getFullYear()
+      ).length
+    }
+  });
+});
+
+// Admin: Export security logs (protected)
+app.get('/admin/export-logs', requireAuth, (req, res) => {
+  const format = req.query.format || 'json';
+  const clientIP = getClientIP(req);
+  
+  // Log export action
+  addSecurityLog('admin_action', {
+    ip: clientIP,
+    action: 'export_logs',
+    details: `Exported ${securityLogs.length} log entries in ${format} format`,
+    userAgent: req.headers['user-agent'] || ''
+  });
+  
+  if (format === 'csv') {
+    // CSV export
+    const csvHeader = 'Timestamp,Type,IP,Browser,OS,Device,Location,Message\n';
+    const csvData = securityLogs.map(log => 
+      `"${log.timestamp}","${log.type}","${log.ip}","${log.browser || ''}","${log.os || ''}","${log.device || ''}","${log.location || ''}","${log.message || log.reason || ''}"`
+    ).join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="security-logs-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csvHeader + csvData);
+  } else {
+    // JSON export
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="security-logs-${new Date().toISOString().split('T')[0]}.json"`);
+    res.json({
+      exportDate: new Date().toISOString(),
+      totalEntries: securityLogs.length,
+      logs: securityLogs
+    });
+  }
 });
 
 // Check authentication status with session info

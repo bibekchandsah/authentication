@@ -222,6 +222,122 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Show security dashboard
+    window.showSecurityDashboard = async function() {
+        try {
+            const response = await fetch('/admin/security-dashboard');
+            const data = await response.json();
+            
+            if (data.error) {
+                displayInfo('Error', { 'Message': data.error });
+                return;
+            }
+            
+            const dashboardInfo = {
+                '--- Summary ---': '',
+                'Total Log Entries': data.summary.totalLogs,
+                'Last 24 Hours': data.summary.last24Hours,
+                'Last 7 Days': data.summary.last7Days,
+                'Successful Logins': data.summary.successfulLogins,
+                'Failed Logins': data.summary.failedLogins,
+                'Rate Limited Attempts': data.summary.rateLimitedAttempts,
+                'Unique IP Addresses': data.summary.uniqueIPs,
+                '--- Top Activity ---': '',
+                'Most Active IP': data.topIPs[0] ? `${data.topIPs[0].ip} (${data.topIPs[0].count} requests)` : 'None',
+                'Top Failed IP': data.topFailedIPs[0] ? `${data.topFailedIPs[0].ip} (${data.topFailedIPs[0].count} failures)` : 'None',
+                'Top Browser': data.browsers[0] ? `${data.browsers[0][0]} (${data.browsers[0][1]} uses)` : 'Unknown',
+                'Top OS': data.operatingSystems[0] ? `${data.operatingSystems[0][0]} (${data.operatingSystems[0][1]} uses)` : 'Unknown'
+            };
+            
+            displayInfo('Security Dashboard', dashboardInfo);
+        } catch (error) {
+            console.error('Security dashboard error:', error);
+            displayInfo('Error', { 'Message': 'Failed to fetch security dashboard' });
+        }
+    };
+
+    // Show security logs
+    window.showSecurityLogs = async function() {
+        try {
+            const response = await fetch('/admin/security-logs?limit=20');
+            const data = await response.json();
+            
+            if (data.error) {
+                displayInfo('Error', { 'Message': data.error });
+                return;
+            }
+            
+            let logsInfo = {
+                'Total Entries': data.pagination.total,
+                'Showing': `${data.logs.length} most recent entries`,
+                'Statistics': `✅ ${data.statistics.loginSuccess} success, ❌ ${data.statistics.loginFailed} failed, 🚫 ${data.statistics.rateLimited} blocked`,
+                '--- Recent Activity ---': ''
+            };
+            
+            data.logs.forEach((log, index) => {
+                const timestamp = new Date(log.timestamp).toLocaleString();
+                const typeEmoji = {
+                    'login_success': '✅',
+                    'login_failed': '❌',
+                    'logout': '👋',
+                    'rate_limited': '🚫',
+                    'admin_action': '🛠️',
+                    'session_expired': '⏰'
+                };
+                
+                const emoji = typeEmoji[log.type] || '📝';
+                const device = log.device ? ` (${log.device})` : '';
+                const location = log.location && log.location !== 'Local Network' ? ` from ${log.location}` : '';
+                
+                logsInfo[`${index + 1}. ${timestamp}`] = `${emoji} ${log.type.replace('_', ' ')} - ${log.ip} - ${log.browser}/${log.os}${device}${location}`;
+            });
+            
+            displayInfo('Security Logs (Recent 20)', logsInfo);
+        } catch (error) {
+            console.error('Security logs error:', error);
+            displayInfo('Error', { 'Message': 'Failed to fetch security logs' });
+        }
+    };
+
+    // Export security logs
+    window.exportSecurityLogs = async function() {
+        const format = prompt('Export format (json or csv):', 'json');
+        
+        if (!format || (format !== 'json' && format !== 'csv')) {
+            alert('Invalid format. Please choose "json" or "csv".');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/admin/export-logs?format=${format}`);
+            
+            if (response.ok) {
+                // Create download link
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `security-logs-${new Date().toISOString().split('T')[0]}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                displayInfo('Export Successful', {
+                    'Status': '✅ Success',
+                    'Format': format.toUpperCase(),
+                    'Download': 'File downloaded to your computer',
+                    'Timestamp': new Date().toLocaleString()
+                });
+            } else {
+                throw new Error('Export failed');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            displayInfo('Export Failed', { 'Error': 'Failed to export security logs' });
+        }
+    };
+
     function displayInfo(title, data) {
         let content = `<h4>${title}</h4><pre>`;
         

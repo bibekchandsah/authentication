@@ -9,6 +9,7 @@ yarn-error.log*
 .env.production.local
 .DS_Store
 *.log
-# Secr
-et key file (contains TOTP secret)
+# Secret key file (contains TOTP secret)
 .secret-key.json
+# Security logs file (contains sensitive access data)
+.security-logs.json
