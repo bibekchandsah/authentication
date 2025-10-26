@@ -13,3 +13,5 @@ yarn-error.log*
 .secret-key.json
 # Security logs file (contains sensitive access data)
 .security-logs.json
+# Environment variables file (contains sensitive credentials)
+.env

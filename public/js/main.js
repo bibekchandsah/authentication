@@ -338,6 +338,173 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Show notification settings
+    window.showNotificationSettings = async function() {
+        try {
+            const response = await fetch('/admin/notification-settings');
+            const data = await response.json();
+            
+            if (data.error) {
+                displayInfo('Error', { 'Message': data.error });
+                return;
+            }
+            
+            const settingsInfo = {
+                '--- Notification System ---': '',
+                'System Enabled': data.enabled ? '✅ Yes' : '❌ No',
+                '--- Telegram Settings ---': '',
+                'Telegram Enabled': data.telegram.enabled ? '✅ Yes' : '❌ No',
+                'Telegram Configured': data.telegram.configured ? '✅ Yes' : '❌ No',
+                '--- Email Settings ---': '',
+                'Email Enabled': data.email.enabled ? '✅ Yes' : '❌ No',
+                'Email Configured': data.email.configured ? '✅ Yes' : '❌ No',
+                '--- Notification Types ---': '',
+                'Login Success': data.notifications.loginSuccess ? '✅ Enabled' : '❌ Disabled',
+                'Login Failed': data.notifications.loginFailed ? '✅ Enabled' : '❌ Disabled',
+                'Rate Limited': data.notifications.rateLimited ? '✅ Enabled' : '❌ Disabled',
+                'Admin Actions': data.notifications.adminActions ? '✅ Enabled' : '❌ Disabled',
+                'Session Expired': data.notifications.sessionExpired ? '✅ Enabled' : '❌ Disabled'
+            };
+            
+            displayInfo('Notification Settings', settingsInfo);
+        } catch (error) {
+            console.error('Notification settings error:', error);
+            displayInfo('Error', { 'Message': 'Failed to fetch notification settings' });
+        }
+    };
+
+    // Test notifications
+    window.testNotifications = async function() {
+        const type = prompt('Test which notifications?\n\nOptions:\n- telegram\n- email\n- both\n\nEnter your choice:', 'both');
+        
+        if (!type || !['telegram', 'email', 'both'].includes(type.toLowerCase())) {
+            alert('Invalid option. Please choose: telegram, email, or both');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/admin/test-notifications', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type: type.toLowerCase() })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                const resultInfo = {
+                    'Status': '✅ Test Completed',
+                    'Message': data.message,
+                    'Test Type': type.toUpperCase(),
+                    'Timestamp': new Date().toLocaleString()
+                };
+                
+                if (data.results.telegram !== null) {
+                    resultInfo['Telegram Result'] = data.results.telegram ? '✅ Sent' : '❌ Failed';
+                }
+                if (data.results.email !== null) {
+                    resultInfo['Email Result'] = data.results.email ? '✅ Sent' : '❌ Failed';
+                }
+                
+                displayInfo('Notification Test Results', resultInfo);
+                
+                if (data.results.telegram || data.results.email) {
+                    alert('Test notifications sent! Check your Telegram/Email for the test messages.');
+                } else {
+                    alert('Test notifications failed. Check your configuration and try again.');
+                }
+            } else {
+                displayInfo('Test Failed', { 
+                    'Error': data.message,
+                    'Details': data.error || 'Unknown error'
+                });
+            }
+        } catch (error) {
+            console.error('Test notification error:', error);
+            displayInfo('Error', { 'Message': 'Failed to send test notifications' });
+        }
+    };
+
+    // Validate Telegram setup
+    window.validateTelegram = async function() {
+        try {
+            const response = await fetch('/admin/validate-telegram');
+            const data = await response.json();
+            
+            const validationInfo = {
+                '--- Telegram Configuration ---': '',
+                'Telegram Enabled': data.enabled ? '✅ Yes' : '❌ No',
+                'Bot Token Set': data.botTokenSet ? '✅ Yes' : '❌ No',
+                'Chat ID Set': data.chatIdSet ? '✅ Yes' : '❌ No',
+                '--- Validation Results ---': '',
+                'Bot Token Format': data.botTokenFormat ? '✅ Valid' : '❌ Invalid (should be: 123456789:ABCdef...)',
+                'Chat ID Format': data.chatIdFormat ? '✅ Valid' : '❌ Invalid (should be a number)',
+                '--- Details ---': '',
+                'Chat ID Value': data.chatIdValue || 'Not set',
+                'Chat ID Type': data.chatIdType || 'undefined',
+                'Bot Token Length': data.botTokenLength || 'Not set',
+                '--- Overall Status ---': '',
+                'All Valid': data.allValid ? '✅ Ready to send notifications' : '❌ Configuration issues found'
+            };
+            
+            displayInfo('Telegram Validation', validationInfo);
+            
+            if (!data.allValid) {
+                alert('❌ Telegram configuration has issues. Check the validation results and fix your .env file.');
+            } else {
+                alert('✅ Telegram configuration looks good! You can now test notifications.');
+            }
+        } catch (error) {
+            console.error('Telegram validation error:', error);
+            displayInfo('Error', { 'Message': 'Failed to validate Telegram setup' });
+        }
+    };
+
+    // Validate Email setup
+    window.validateEmail = async function() {
+        try {
+            const response = await fetch('/admin/validate-email');
+            const data = await response.json();
+            
+            const validationInfo = {
+                '--- Email Configuration ---': '',
+                'Email Enabled': data.enabled ? '✅ Yes' : '❌ No',
+                'Email User Set': data.userSet ? '✅ Yes' : '❌ No',
+                'Email Password Set': data.passSet ? '✅ Yes' : '❌ No',
+                'From Address Set': data.fromSet ? '✅ Yes' : '❌ No',
+                'To Address Set': data.toSet ? '✅ Yes' : '❌ No',
+                'Service Set': data.serviceSet ? '✅ Yes' : '❌ No',
+                '--- Validation Results ---': '',
+                'User Email Valid': data.userValid ? '✅ Valid' : '❌ Invalid email format',
+                'From Email Valid': data.fromValid ? '✅ Valid' : '❌ Invalid email format',
+                'To Email Valid': data.toValid ? '✅ Valid' : '❌ Invalid email format',
+                'Transporter Created': data.transporterCreated ? '✅ Yes' : '❌ Failed to create',
+                '--- Configuration ---': '',
+                'Service': data.config?.service || 'Not set',
+                'Host': data.config?.host || 'Not set',
+                'Port': data.config?.port || 'Not set',
+                'From': data.config?.from || 'Not set',
+                'To': data.config?.to || 'Not set',
+                'User': data.config?.user || 'Not set',
+                '--- Overall Status ---': '',
+                'All Valid': data.allValid ? '✅ Ready to send emails' : '❌ Configuration issues found'
+            };
+            
+            displayInfo('Email Validation', validationInfo);
+            
+            if (!data.allValid) {
+                alert('❌ Email configuration has issues. Check the validation results and fix your .env file.');
+            } else {
+                alert('✅ Email configuration looks good! You can now test email notifications.');
+            }
+        } catch (error) {
+            console.error('Email validation error:', error);
+            displayInfo('Error', { 'Message': 'Failed to validate Email setup' });
+        }
+    };
+
     function displayInfo(title, data) {
         let content = `<h4>${title}</h4><pre>`;
         

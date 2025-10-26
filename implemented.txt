@@ -33,7 +33,7 @@ Warning Phase: 5 minutes before expiry, modal appears
 Extension Options: User can extend or logout immediately
 Logging System: Track login attempts, IPs, and timestamps for security audits.
 Activity Logs: Display a table of last login time, device info, and access history.
-
+Notifications via Email/Telegram: Notify you instantly when a successful login occurs.
 
 
 to be implemented

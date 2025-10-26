@@ -279,6 +279,46 @@ body {
     box-shadow: 0 8px 20px rgba(23, 162, 184, 0.3);
 }
 
+.notification-btn {
+    background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+    color: white;
+}
+
+.notification-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(111, 66, 193, 0.3);
+}
+
+.test-btn {
+    background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%);
+    color: white;
+}
+
+.test-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(253, 126, 20, 0.3);
+}
+
+.validate-btn {
+    background: linear-gradient(135deg, #e83e8c 0%, #d91a72 100%);
+    color: white;
+}
+
+.validate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(232, 62, 140, 0.3);
+}
+
+.validate-email-btn {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    color: white;
+}
+
+.validate-email-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(32, 201, 151, 0.3);
+}
+
 .admin-warning {
     background: #fff3cd;
     color: #856404;
