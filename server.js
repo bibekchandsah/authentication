@@ -180,16 +180,59 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Session configuration
+// Session timeout configuration
+const SESSION_CONFIG = {
+  maxAge: 30 * 60 * 1000,        // 30 minutes session timeout
+  warningTime: 5 * 60 * 1000,    // Show warning 5 minutes before expiry
+  extendTime: 15 * 60 * 1000,    // Extend session by 15 minutes on activity
+  checkInterval: 60 * 1000       // Check session every minute
+};
+
+// Session configuration with activity tracking
 app.use(session({
   secret: 'secure-session-secret-key-2024',
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: false, // Set to true in production with HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    secure: process.env.NODE_ENV === 'production', // HTTPS in production
+    maxAge: SESSION_CONFIG.maxAge,
+    httpOnly: true // Prevent XSS attacks
   }
 }));
+
+// Session activity tracking middleware
+app.use((req, res, next) => {
+  if (req.session && req.session.authenticated) {
+    const now = Date.now();
+    
+    // Initialize session timestamps
+    if (!req.session.createdAt) {
+      req.session.createdAt = now;
+    }
+    
+    // Update last activity
+    req.session.lastActivity = now;
+    
+    // Check if session should expire due to inactivity
+    const timeSinceLastActivity = now - (req.session.lastActivity || req.session.createdAt);
+    if (timeSinceLastActivity > SESSION_CONFIG.maxAge) {
+      console.log(`⏰ Session expired for user due to inactivity`);
+      req.session.destroy();
+      if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+        return res.status(401).json({ 
+          success: false, 
+          sessionExpired: true,
+          message: 'Session expired due to inactivity' 
+        });
+      }
+      return res.redirect('/login');
+    }
+    
+    // Extend session on activity (reset cookie maxAge)
+    req.session.cookie.maxAge = SESSION_CONFIG.maxAge;
+  }
+  next();
+});
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
@@ -428,11 +471,67 @@ app.post('/admin/clear-all-rate-limits', requireAuth, (req, res) => {
   res.json({ success: true, message: `Cleared rate limits for ${clearedCount} IPs` });
 });
 
-// Check authentication status
+// Check authentication status with session info
 app.get('/auth-status', (req, res) => {
-  res.json({ 
-    authenticated: !!(req.session && req.session.authenticated),
-    user: req.session ? req.session.user : null
+  if (req.session && req.session.authenticated) {
+    const now = Date.now();
+    const sessionAge = now - req.session.createdAt;
+    const timeSinceActivity = now - req.session.lastActivity;
+    const timeUntilExpiry = SESSION_CONFIG.maxAge - timeSinceActivity;
+    const showWarning = timeUntilExpiry <= SESSION_CONFIG.warningTime;
+    
+    res.json({ 
+      authenticated: true,
+      user: req.session.user,
+      sessionInfo: {
+        createdAt: new Date(req.session.createdAt),
+        lastActivity: new Date(req.session.lastActivity),
+        sessionAge: Math.floor(sessionAge / 1000), // seconds
+        timeUntilExpiry: Math.floor(timeUntilExpiry / 1000), // seconds
+        showWarning,
+        maxAge: SESSION_CONFIG.maxAge / 1000 // seconds
+      }
+    });
+  } else {
+    res.json({ 
+      authenticated: false,
+      user: null,
+      sessionExpired: true
+    });
+  }
+});
+
+// Extend session endpoint (for keeping session alive)
+app.post('/extend-session', requireAuth, (req, res) => {
+  const now = Date.now();
+  req.session.lastActivity = now;
+  req.session.cookie.maxAge = SESSION_CONFIG.maxAge;
+  
+  console.log(`🔄 Session extended for user`);
+  
+  res.json({
+    success: true,
+    message: 'Session extended successfully',
+    newExpiry: new Date(now + SESSION_CONFIG.maxAge),
+    extendedBy: SESSION_CONFIG.extendTime / 1000 / 60 // minutes
+  });
+});
+
+// Session info endpoint
+app.get('/session-info', requireAuth, (req, res) => {
+  const now = Date.now();
+  const sessionAge = now - req.session.createdAt;
+  const timeSinceActivity = now - req.session.lastActivity;
+  const timeUntilExpiry = SESSION_CONFIG.maxAge - timeSinceActivity;
+  
+  res.json({
+    createdAt: new Date(req.session.createdAt),
+    lastActivity: new Date(req.session.lastActivity),
+    sessionAge: Math.floor(sessionAge / 1000 / 60), // minutes
+    timeUntilExpiry: Math.floor(timeUntilExpiry / 1000 / 60), // minutes
+    maxSessionTime: SESSION_CONFIG.maxAge / 1000 / 60, // minutes
+    warningThreshold: SESSION_CONFIG.warningTime / 1000 / 60, // minutes
+    autoExtend: true
   });
 });
 

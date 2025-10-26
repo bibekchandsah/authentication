@@ -27,6 +27,11 @@ Initial Lockout: 15 minutes
 Progressive Penalty: Doubles with each violation (max 24 hours)
 Rate Limit Dashboard: View all monitored IPs and their status
 Clear All Limits: Emergency function to clear all rate limits
+Login: Session created with 30-minute expiry
+Activity Tracking: User actions reset the expiry timer
+Warning Phase: 5 minutes before expiry, modal appears
+Extension Options: User can extend or logout immediately
+
 
 
 

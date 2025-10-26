@@ -1,6 +1,17 @@
 document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logoutBtn');
     const infoDisplay = document.getElementById('infoDisplay');
+    
+    // Session timeout elements
+    const sessionWarningModal = document.getElementById('sessionWarningModal');
+    const sessionCountdown = document.getElementById('sessionCountdown');
+    const extendSessionBtn = document.getElementById('extendSessionBtn');
+    const logoutNowBtn = document.getElementById('logoutNowBtn');
+    
+    // Session management variables
+    let sessionCheckInterval = null;
+    let warningCountdownInterval = null;
+    let sessionWarningShown = false;
 
     // Logout functionality
     logoutBtn.addEventListener('click', async function() {
@@ -47,20 +58,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Show session information
-    window.showSessionInfo = function() {
-        const sessionInfo = {
-            'Page': 'Main Dashboard',
-            'Access Level': 'Full Access',
-            'Security': 'Microsoft Key Authentication',
-            'Session Type': 'Server-side Session',
-            'Last Activity': new Date().toLocaleString(),
-            'Browser': navigator.userAgent.split(' ')[0],
-            'Platform': navigator.platform
-        };
-        
-        displayInfo('Session Information', sessionInfo);
-    };
+    // Show basic session information (replaced by detailed version below)
+    // This function is redefined later with server-side session data
 
     // Show secret key information
     window.showSecretInfo = async function() {
@@ -239,7 +238,171 @@ document.addEventListener('DOMContentLoaded', function() {
         infoDisplay.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // Verify authentication on page load
+    // Session timeout management
+    function startSessionMonitoring() {
+        sessionCheckInterval = setInterval(checkSessionStatus, 60000); // Check every minute
+        checkSessionStatus(); // Initial check
+    }
+
+    async function checkSessionStatus() {
+        try {
+            const response = await fetch('/auth-status');
+            const data = await response.json();
+            
+            if (!data.authenticated || data.sessionExpired) {
+                // Session expired - redirect to login
+                clearSessionIntervals();
+                alert('Your session has expired. Please login again.');
+                window.location.href = '/login';
+                return;
+            }
+            
+            if (data.sessionInfo && data.sessionInfo.showWarning && !sessionWarningShown) {
+                // Show warning modal
+                showSessionWarning(data.sessionInfo.timeUntilExpiry);
+            }
+        } catch (error) {
+            console.error('Session check error:', error);
+            // On error, redirect to login for security
+            window.location.href = '/login';
+        }
+    }
+
+    function showSessionWarning(timeUntilExpiry) {
+        sessionWarningShown = true;
+        sessionWarningModal.style.display = 'flex';
+        
+        let remainingSeconds = timeUntilExpiry;
+        
+        // Update countdown immediately
+        updateCountdownDisplay(remainingSeconds);
+        
+        // Start countdown
+        warningCountdownInterval = setInterval(() => {
+            remainingSeconds--;
+            updateCountdownDisplay(remainingSeconds);
+            
+            if (remainingSeconds <= 0) {
+                // Time's up - logout
+                clearSessionIntervals();
+                alert('Session expired due to inactivity.');
+                window.location.href = '/login';
+            }
+        }, 1000);
+    }
+
+    function updateCountdownDisplay(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        sessionCountdown.textContent = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    function hideSessionWarning() {
+        sessionWarningShown = false;
+        sessionWarningModal.style.display = 'none';
+        if (warningCountdownInterval) {
+            clearInterval(warningCountdownInterval);
+            warningCountdownInterval = null;
+        }
+    }
+
+    function clearSessionIntervals() {
+        if (sessionCheckInterval) {
+            clearInterval(sessionCheckInterval);
+            sessionCheckInterval = null;
+        }
+        if (warningCountdownInterval) {
+            clearInterval(warningCountdownInterval);
+            warningCountdownInterval = null;
+        }
+    }
+
+    // Extend session functionality
+    extendSessionBtn.addEventListener('click', async function() {
+        try {
+            const response = await fetch('/extend-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                hideSessionWarning();
+                displayInfo('Session Extended', {
+                    'Status': '✅ Success',
+                    'Message': data.message,
+                    'New Expiry': new Date(data.newExpiry).toLocaleString(),
+                    'Extended By': `${data.extendedBy} minutes`
+                });
+            } else {
+                alert('Failed to extend session. Please login again.');
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            console.error('Extend session error:', error);
+            alert('Connection error. Please login again.');
+            window.location.href = '/login';
+        }
+    });
+
+    // Logout now functionality
+    logoutNowBtn.addEventListener('click', function() {
+        clearSessionIntervals();
+        logoutBtn.click(); // Use existing logout functionality
+    });
+
+    // Activity tracking - extend session on user activity
+    let activityTimer = null;
+    function trackActivity() {
+        // Debounce activity tracking
+        if (activityTimer) clearTimeout(activityTimer);
+        
+        activityTimer = setTimeout(async () => {
+            try {
+                // Silent session extension on activity
+                await fetch('/extend-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (error) {
+                console.error('Activity tracking error:', error);
+            }
+        }, 1000);
+    }
+
+    // Track user activity
+    ['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
+        document.addEventListener(event, trackActivity, { passive: true });
+    });
+
+    // Show session info function
+    window.showSessionInfo = async function() {
+        try {
+            const response = await fetch('/session-info');
+            const data = await response.json();
+            
+            const sessionInfo = {
+                'Session Created': data.createdAt ? new Date(data.createdAt).toLocaleString() : 'Unknown',
+                'Last Activity': data.lastActivity ? new Date(data.lastActivity).toLocaleString() : 'Unknown',
+                'Session Age': `${data.sessionAge} minutes`,
+                'Time Until Expiry': `${data.timeUntilExpiry} minutes`,
+                'Max Session Time': `${data.maxSessionTime} minutes`,
+                'Warning Threshold': `${data.warningThreshold} minutes before expiry`,
+                'Auto-Extend on Activity': data.autoExtend ? 'Enabled' : 'Disabled',
+                'Current Time': new Date().toLocaleString()
+            };
+            
+            displayInfo('Session Information', sessionInfo);
+        } catch (error) {
+            console.error('Session info error:', error);
+            displayInfo('Error', { 'Message': 'Failed to fetch session information' });
+        }
+    };
+
+    // Verify authentication and start session monitoring
     checkAuthOnLoad();
 
     async function checkAuthOnLoad() {
@@ -250,6 +413,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!data.authenticated) {
                 // Redirect to login if not authenticated
                 window.location.href = '/login';
+            } else {
+                // Start session monitoring
+                startSessionMonitoring();
             }
         } catch (error) {
             console.error('Auth check error:', error);
@@ -257,4 +423,9 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = '/login';
         }
     }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        clearSessionIntervals();
+    });
 });

@@ -94,6 +94,23 @@
         <p>🔐 Secure Webpage System | Built by <strong>Bibek Sha</strong></p>
     </footer>
     
+    <!-- Session Timeout Warning Modal -->
+    <div id="sessionWarningModal" class="session-modal" style="display: none;">
+        <div class="session-modal-content">
+            <div class="session-warning-header">
+                <h3>⏰ Session Expiring Soon</h3>
+            </div>
+            <div class="session-warning-body">
+                <p>Your session will expire in <span id="sessionCountdown" class="countdown-timer">5:00</span></p>
+                <p>You will be automatically logged out due to inactivity.</p>
+            </div>
+            <div class="session-warning-actions">
+                <button id="extendSessionBtn" class="extend-btn">🔄 Extend Session</button>
+                <button id="logoutNowBtn" class="logout-btn-modal">🚪 Logout Now</button>
+            </div>
+        </div>
+    </div>
+    
     <script src="/js/main.js"></script>
 </body>
 </html>
