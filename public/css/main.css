@@ -259,6 +259,16 @@ body {
     box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
 }
 
+.clear-btn {
+    background: linear-gradient(135deg, #ffc107 0%, #ff8f00 100%);
+    color: #212529;
+}
+
+.clear-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 193, 7, 0.3);
+}
+
 .admin-warning {
     background: #fff3cd;
     color: #856404;

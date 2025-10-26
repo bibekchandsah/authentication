@@ -62,6 +62,9 @@
                     <button class="action-btn" onclick="showSecretInfo()">
                         🔑 Secret Key Info
                     </button>
+                    <button class="action-btn" onclick="showRateLimits()">
+                        🛡️ Rate Limit Status
+                    </button>
                 </div>
             </div>
             
@@ -74,6 +77,9 @@
                     <a href="/setup" target="_blank" class="admin-btn setup-btn">
                         📱 View Setup Page
                     </a>
+                    <button class="admin-btn clear-btn" onclick="clearAllRateLimits()">
+                        🔓 Clear All Rate Limits
+                    </button>
                 </div>
                 <p class="admin-warning">
                     ⚠️ <strong>Warning:</strong> Regenerating the secret key will require you to reconfigure your Microsoft Authenticator app.

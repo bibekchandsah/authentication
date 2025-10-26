@@ -1,12 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
     const errorMessage = document.getElementById('errorMessage');
+    const rateLimitMessage = document.getElementById('rateLimitMessage');
     const loginBtn = loginForm.querySelector('.login-btn');
     const btnText = loginBtn.querySelector('.btn-text');
     const btnLoading = loginBtn.querySelector('.btn-loading');
     
     // Get all digit input elements
     const digitInputs = document.querySelectorAll('.code-digit');
+    
+    let rateLimitCountdown = null;
 
     // Initialize digit input functionality
     initializeDigitInputs();
@@ -47,12 +50,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 // Success - show success state and redirect
                 showInputSuccess();
+                hideRateLimit();
                 setTimeout(() => {
                     window.location.href = '/main';
                 }, 500);
+            } else if (data.rateLimited) {
+                // Rate limited - show lockout message
+                showRateLimit(data.message, data.remainingTime, data.lockedUntil);
+                showInputError();
+                setLoadingState(false);
+                disableForm(true);
             } else {
-                // Show error message
+                // Regular error - show error message
                 showError(data.message || 'Authentication failed');
+                if (data.remainingAttempts !== undefined) {
+                    showAttemptsRemaining(data.remainingAttempts);
+                }
                 showInputError();
                 setLoadingState(false);
             }
@@ -207,11 +220,116 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.style.display = 'none';
     }
 
-    // Focus on first input field when page loads
-    digitInputs[0].focus();
+    function showRateLimit(message, remainingMinutes, lockedUntil) {
+        rateLimitMessage.innerHTML = `
+            <div class="rate-limit-countdown">🔒 Account Temporarily Locked</div>
+            <div>${message}</div>
+            <div id="countdown" class="rate-limit-countdown"></div>
+            <small>Too many failed login attempts detected. Please wait before trying again.</small>
+        `;
+        rateLimitMessage.className = 'rate-limit-message severe';
+        rateLimitMessage.style.display = 'block';
+        
+        // Start countdown timer
+        if (remainingMinutes > 0) {
+            startCountdown(remainingMinutes);
+        }
+    }
+
+    function hideRateLimit() {
+        rateLimitMessage.style.display = 'none';
+        if (rateLimitCountdown) {
+            clearInterval(rateLimitCountdown);
+            rateLimitCountdown = null;
+        }
+    }
+
+    function showAttemptsRemaining(remaining) {
+        if (remaining > 0) {
+            const attemptsDiv = document.createElement('div');
+            attemptsDiv.className = 'attempts-remaining';
+            attemptsDiv.innerHTML = `⚠️ ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining before account lockout`;
+            errorMessage.appendChild(attemptsDiv);
+        }
+    }
+
+    function startCountdown(minutes) {
+        let totalSeconds = minutes * 60;
+        const countdownElement = document.getElementById('countdown');
+        
+        rateLimitCountdown = setInterval(() => {
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            
+            if (countdownElement) {
+                countdownElement.textContent = `Time remaining: ${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            totalSeconds--;
+            
+            if (totalSeconds < 0) {
+                clearInterval(rateLimitCountdown);
+                rateLimitCountdown = null;
+                // Refresh page to allow login attempts again
+                window.location.reload();
+            }
+        }, 1000);
+    }
+
+    function disableForm(disabled) {
+        digitInputs.forEach(input => input.disabled = disabled);
+        loginBtn.disabled = disabled;
+        
+        if (disabled) {
+            loginBtn.style.opacity = '0.5';
+            loginBtn.style.cursor = 'not-allowed';
+        } else {
+            loginBtn.style.opacity = '';
+            loginBtn.style.cursor = '';
+        }
+    }
+
+    // Check rate limit status on page load
+    async function checkRateLimitStatus() {
+        try {
+            const response = await fetch('/rate-limit-status');
+            const data = await response.json();
+            
+            if (data.rateLimited && data.remainingTime > 0) {
+                showRateLimit(
+                    `Too many failed attempts. Account locked for ${data.remainingTime} more minutes.`,
+                    data.remainingTime,
+                    data.lockedUntil
+                );
+                disableForm(true);
+            }
+        } catch (error) {
+            console.error('Rate limit check error:', error);
+        }
+    }
+
+    // Check rate limit status on page load
+    checkRateLimitStatus();
+
+    // Focus on first input field when page loads (if not rate limited)
+    setTimeout(() => {
+        if (!digitInputs[0].disabled) {
+            digitInputs[0].focus();
+        }
+    }, 100);
 
     // Add double-click to clear all inputs
     digitInputs.forEach(input => {
         input.addEventListener('dblclick', clearInputs);
+    });
+
+    // Clear rate limit message when user starts typing (if not locked)
+    digitInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            if (!input.disabled) {
+                hideRateLimit();
+                hideError();
+            }
+        });
     });
 });

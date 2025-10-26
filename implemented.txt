@@ -10,6 +10,8 @@ git remote add origin https://github.com/bibekchandsah/authentication.git
 git branch -M main
 git push -u origin main
 
+Features
+--------------------------------------------------------------------------------------
 Microsoft Authenticator integration with TOTP (Time-based One-Time Password)
 The .secret-key.json file contains your TOTP secret
 Just start the server and login with your 6-digit codes
@@ -20,4 +22,20 @@ Click "🔄 Regenerate Secret Key" or Delete .secret-key.json file to generate a
 Numbers Only: Automatically filters out non-numeric characters
 Double-Click Clear: Double-click any box to clear all inputs
 Auto-Submit: No need to click login - submits automatically
+Max Attempts: 5 failed attempts before lockout
+Initial Lockout: 15 minutes
+Progressive Penalty: Doubles with each violation (max 24 hours)
+Rate Limit Dashboard: View all monitored IPs and their status
+Clear All Limits: Emergency function to clear all rate limits
 
+
+
+to be implemented
+--------------------------------------------------------------------------------------
+Login Attempt Limit: Lock the login page after several failed attempts to prevent brute force attacks.
+Session Timeout / Auto Logout: Automatically log out inactive users after a set time.
+Logging System: Track login attempts, IPs, and timestamps for security audits.
+Activity Logs: Display a table of last login time, device info, and access history.
+Browser Fingerprinting: Detect if an unauthorized browser tries to log in even with the correct key.
+Notifications via Email/Telegram: Notify you instantly when a successful login occurs.
+Custom 404 / Access Denied Pages: Add a friendly “Access Denied” page for unauthorized attempts.

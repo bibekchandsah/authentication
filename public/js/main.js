@@ -144,6 +144,85 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Show rate limit information
+    window.showRateLimits = async function() {
+        try {
+            const response = await fetch('/admin/rate-limits');
+            const data = await response.json();
+            
+            if (data.error) {
+                displayInfo('Error', { 'Message': data.error });
+                return;
+            }
+            
+            let rateLimitInfo = {
+                'Total Monitored IPs': data.totalIPs,
+                'Currently Locked IPs': data.lockedIPs,
+                'Max Attempts Allowed': data.config.maxAttempts,
+                'Lockout Duration': `${data.config.lockoutDuration / 1000 / 60} minutes`,
+                'Progressive Lockout': data.config.progressiveLockout ? 'Enabled' : 'Disabled'
+            };
+            
+            if (data.rateLimits.length > 0) {
+                rateLimitInfo['--- Recent Activity ---'] = '';
+                data.rateLimits.slice(0, 10).forEach((limit, index) => {
+                    const status = limit.locked ? `🔒 LOCKED (${limit.remainingTime}min)` : '✅ Active';
+                    rateLimitInfo[`${index + 1}. ${limit.ip}`] = `${status} - ${limit.attempts} attempts, ${limit.violations} violations`;
+                });
+            } else {
+                rateLimitInfo['Status'] = '✅ No rate limits active';
+            }
+            
+            displayInfo('Rate Limit Status', rateLimitInfo);
+        } catch (error) {
+            console.error('Rate limit info error:', error);
+            displayInfo('Error', { 'Message': 'Failed to fetch rate limit information' });
+        }
+    };
+
+    // Clear all rate limits
+    window.clearAllRateLimits = async function() {
+        const confirmMessage = 'Are you sure you want to clear ALL rate limits?\n\n' +
+                              'This will:\n' +
+                              '• Remove all IP-based login restrictions\n' +
+                              '• Allow previously locked IPs to attempt login\n' +
+                              '• Reset all failed attempt counters\n\n' +
+                              'Type "CLEAR" to confirm:';
+        
+        const confirmation = prompt(confirmMessage);
+        
+        if (confirmation !== 'CLEAR') {
+            alert('Rate limit clearing cancelled.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/admin/clear-all-rate-limits', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                displayInfo('Rate Limits Cleared', {
+                    'Status': '✅ Success',
+                    'Message': data.message,
+                    'Timestamp': new Date().toLocaleString()
+                });
+            } else {
+                displayInfo('Clear Failed', { 
+                    'Error': data.message
+                });
+            }
+        } catch (error) {
+            console.error('Clear rate limits error:', error);
+            displayInfo('Error', { 'Message': 'Failed to clear rate limits' });
+        }
+    };
+
     function displayInfo(title, data) {
         let content = `<h4>${title}</h4><pre>`;
         
