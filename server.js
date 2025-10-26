@@ -7,8 +7,7 @@ const path = require('path');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const fs = require('fs');
-const nodemailer = require('nodemailer');
-const axios = require('axios');
+// Note: nodemailer and axios are now handled by the notification services
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -139,320 +138,10 @@ loadSecurityLogs();
 // Setup cleanup interval
 setInterval(cleanupOldLogs, LOGGING_CONFIG.cleanupInterval);
 
-// Notification configuration
-const NOTIFICATION_CONFIG = {
-  enabled: true,
-  telegram: {
-    enabled: process.env.TELEGRAM_ENABLED === 'true' || false,
-    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-    chatId: process.env.TELEGRAM_CHAT_ID || '',
-    apiUrl: 'https://api.telegram.org/bot'
-  },
-  email: {
-    enabled: process.env.EMAIL_ENABLED === 'true' || false,
-    service: process.env.EMAIL_SERVICE || 'gmail', // gmail, outlook, yahoo, etc.
-    host: process.env.EMAIL_HOST || '',
-    port: process.env.EMAIL_PORT || 587,
-    secure: process.env.EMAIL_SECURE === 'true' || false,
-    auth: {
-      user: process.env.EMAIL_USER || '',
-      pass: process.env.EMAIL_PASS || '' // App password for Gmail
-    },
-    from: process.env.EMAIL_FROM || '',
-    to: process.env.EMAIL_TO || ''
-  },
-  notifications: {
-    loginSuccess: true,
-    loginFailed: false, // Set to true if you want failed login notifications
-    rateLimited: true,
-    adminActions: true,
-    sessionExpired: false
-  }
-};
-
-// Email transporter setup
-let emailTransporter = null;
-if (NOTIFICATION_CONFIG.email.enabled && NOTIFICATION_CONFIG.email.auth.user) {
-  try {
-    console.log('🔍 Email Debug Info:');
-    console.log('- Service:', NOTIFICATION_CONFIG.email.service);
-    console.log('- User:', NOTIFICATION_CONFIG.email.auth.user);
-    console.log('- From:', NOTIFICATION_CONFIG.email.from);
-    console.log('- To:', NOTIFICATION_CONFIG.email.to);
-    console.log('- Host:', NOTIFICATION_CONFIG.email.host || 'Using service default');
-    console.log('- Port:', NOTIFICATION_CONFIG.email.port);
-    
-    emailTransporter = nodemailer.createTransport({
-      service: NOTIFICATION_CONFIG.email.service,
-      host: NOTIFICATION_CONFIG.email.host,
-      port: NOTIFICATION_CONFIG.email.port,
-      secure: NOTIFICATION_CONFIG.email.secure,
-      auth: NOTIFICATION_CONFIG.email.auth
-    });
-    
-    console.log('📧 Email notifications configured successfully');
-    
-    // Test the connection
-    emailTransporter.verify((error, success) => {
-      if (error) {
-        console.error('❌ Email connection test failed:', error.message);
-      } else {
-        console.log('✅ Email server connection verified');
-      }
-    });
-    
-  } catch (error) {
-    console.error('❌ Email configuration error:', error.message);
-    emailTransporter = null;
-  }
-} else {
-  console.log('⚠️ Email notifications disabled or not configured');
-}
-
-// Telegram notification function
-async function sendTelegramNotification(message) {
-  if (!NOTIFICATION_CONFIG.telegram.enabled || !NOTIFICATION_CONFIG.telegram.botToken) {
-    console.log('⚠️ Telegram not configured - skipping notification');
-    return false;
-  }
-
-  try {
-    const url = `${NOTIFICATION_CONFIG.telegram.apiUrl}${NOTIFICATION_CONFIG.telegram.botToken}/sendMessage`;
-    
-    // Debug logging
-    console.log('🔍 Telegram Debug Info:');
-    console.log('- Bot Token:', NOTIFICATION_CONFIG.telegram.botToken ? `${NOTIFICATION_CONFIG.telegram.botToken.substring(0, 10)}...` : 'NOT SET');
-    console.log('- Chat ID:', NOTIFICATION_CONFIG.telegram.chatId);
-    console.log('- Chat ID Type:', typeof NOTIFICATION_CONFIG.telegram.chatId);
-    console.log('- URL:', url.replace(NOTIFICATION_CONFIG.telegram.botToken, 'TOKEN_HIDDEN'));
-    
-    const payload = {
-      chat_id: NOTIFICATION_CONFIG.telegram.chatId,
-      text: message,
-      parse_mode: 'HTML',
-      disable_web_page_preview: true
-    };
-    
-    console.log('- Payload Chat ID:', payload.chat_id, typeof payload.chat_id);
-    
-    const response = await axios.post(url, payload);
-    
-    console.log('📱 Telegram notification sent successfully');
-    return true;
-  } catch (error) {
-    console.error('❌ Telegram notification error:', error.message);
-    
-    // More detailed error logging
-    if (error.response) {
-      console.error('- Status:', error.response.status);
-      console.error('- Response:', JSON.stringify(error.response.data, null, 2));
-    }
-    
-    // Common error explanations
-    if (error.response?.status === 400) {
-      console.error('💡 Common 400 error causes:');
-      console.error('   - Invalid bot token format');
-      console.error('   - Invalid chat ID (should be a number, not string)');
-      console.error('   - Bot hasn\'t been started by the user');
-      console.error('   - HTML parsing error in message');
-    }
-    
-    return false;
-  }
-}
-
-// Email notification function
-async function sendEmailNotification(subject, htmlContent, textContent) {
-  if (!NOTIFICATION_CONFIG.email.enabled || !emailTransporter) {
-    return false;
-  }
-
-  try {
-    const mailOptions = {
-      from: NOTIFICATION_CONFIG.email.from,
-      to: NOTIFICATION_CONFIG.email.to,
-      subject: subject,
-      text: textContent,
-      html: htmlContent
-    };
-
-    await emailTransporter.sendMail(mailOptions);
-    console.log('📧 Email notification sent');
-    return true;
-  } catch (error) {
-    console.error('❌ Email notification error:', error.message);
-    return false;
-  }
-}
-
-// Main notification function
-async function sendSecurityNotification(type, logEntry) {
-  if (!NOTIFICATION_CONFIG.enabled || !NOTIFICATION_CONFIG.notifications[type]) {
-    return;
-  }
-
-  const timestamp = new Date(logEntry.timestamp).toLocaleString();
-  const deviceInfo = `${logEntry.browser}/${logEntry.os} (${logEntry.device})`;
-  const locationInfo = logEntry.location || 'Unknown';
-
-  let telegramMessage = '';
-  let emailSubject = '';
-  let emailHtml = '';
-  let emailText = '';
-
-  switch (type) {
-    case 'loginSuccess':
-      telegramMessage = `🔐 <b>SECURE LOGIN ALERT</b>\n\n` +
-        `✅ <b>Successful Login</b>\n` +
-        `🕐 Time: ${timestamp}\n` +
-        `🌐 IP: <code>${logEntry.ip}</code>\n` +
-        `💻 Device: ${deviceInfo}\n` +
-        `📍 Location: ${locationInfo}\n` +
-        `🔑 Session: ${logEntry.sessionId?.substring(0, 8)}...\n\n` +
-        `<i>Secure Webpage - Bibek Sha</i>`;
-
-      emailSubject = '🔐 Security Alert: Successful Login Detected';
-      emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
-            <h1>🔐 Security Alert</h1>
-            <h2>Successful Login Detected</h2>
-          </div>
-          <div style="padding: 20px; background: #f8f9fa;">
-            <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #28a745;">
-              <h3 style="color: #28a745; margin-top: 0;">✅ Login Successful</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; font-weight: bold;">Time:</td><td>${timestamp}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">IP Address:</td><td><code>${logEntry.ip}</code></td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Browser:</td><td>${logEntry.browser}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Operating System:</td><td>${logEntry.os}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Device Type:</td><td>${logEntry.device}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Location:</td><td>${locationInfo}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Session ID:</td><td><code>${logEntry.sessionId?.substring(0, 12)}...</code></td></tr>
-              </table>
-            </div>
-            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
-              <p style="margin: 0;"><strong>⚠️ Security Notice:</strong> If this login was not authorized by you, please check your system immediately and consider regenerating your authentication secret.</p>
-            </div>
-          </div>
-          <div style="background: #343a40; color: white; padding: 15px; text-align: center; font-size: 12px;">
-            <p style="margin: 0;">Secure Webpage System - Built by Bibek Sha</p>
-            <p style="margin: 5px 0 0 0;">This is an automated security notification</p>
-          </div>
-        </div>
-      `;
-      emailText = `SECURITY ALERT: Successful Login Detected\n\n` +
-        `Time: ${timestamp}\n` +
-        `IP Address: ${logEntry.ip}\n` +
-        `Device: ${deviceInfo}\n` +
-        `Location: ${locationInfo}\n` +
-        `Session: ${logEntry.sessionId?.substring(0, 8)}...\n\n` +
-        `If this login was not authorized, please check your system immediately.\n\n` +
-        `Secure Webpage System - Bibek Sha`;
-      break;
-
-    case 'rateLimited':
-      telegramMessage = `🚫 <b>SECURITY ALERT</b>\n\n` +
-        `⚠️ <b>Rate Limited Access</b>\n` +
-        `🕐 Time: ${timestamp}\n` +
-        `🌐 IP: <code>${logEntry.ip}</code>\n` +
-        `💻 Device: ${deviceInfo}\n` +
-        `📍 Location: ${locationInfo}\n` +
-        `🔢 Attempts: ${logEntry.totalAttempts}\n` +
-        `⏰ Locked for: ${logEntry.remainingTime} minutes\n\n` +
-        `<i>Possible brute force attack detected</i>`;
-
-      emailSubject = '🚫 Security Alert: Rate Limited Access Attempt';
-      emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 20px; text-align: center;">
-            <h1>🚫 Security Alert</h1>
-            <h2>Rate Limited Access Attempt</h2>
-          </div>
-          <div style="padding: 20px; background: #f8f9fa;">
-            <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #dc3545;">
-              <h3 style="color: #dc3545; margin-top: 0;">⚠️ Suspicious Activity Detected</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; font-weight: bold;">Time:</td><td>${timestamp}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">IP Address:</td><td><code>${logEntry.ip}</code></td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Device:</td><td>${deviceInfo}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Location:</td><td>${locationInfo}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Failed Attempts:</td><td>${logEntry.totalAttempts}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Locked Duration:</td><td>${logEntry.remainingTime} minutes</td></tr>
-              </table>
-              <p style="margin-top: 15px; color: #dc3545;"><strong>Possible brute force attack detected!</strong></p>
-            </div>
-          </div>
-          <div style="background: #343a40; color: white; padding: 15px; text-align: center; font-size: 12px;">
-            <p style="margin: 0;">Secure Webpage System - Built by Bibek Sha</p>
-          </div>
-        </div>
-      `;
-      emailText = `SECURITY ALERT: Rate Limited Access Attempt\n\n` +
-        `Possible brute force attack detected!\n\n` +
-        `Time: ${timestamp}\n` +
-        `IP: ${logEntry.ip}\n` +
-        `Device: ${deviceInfo}\n` +
-        `Failed Attempts: ${logEntry.totalAttempts}\n` +
-        `Locked for: ${logEntry.remainingTime} minutes`;
-      break;
-
-    case 'adminActions':
-      telegramMessage = `🛠️ <b>ADMIN ACTION</b>\n\n` +
-        `⚙️ <b>${logEntry.action}</b>\n` +
-        `🕐 Time: ${timestamp}\n` +
-        `🌐 IP: <code>${logEntry.ip}</code>\n` +
-        `💻 Device: ${deviceInfo}\n` +
-        `📝 Details: ${logEntry.details}\n\n` +
-        `<i>Administrative action performed</i>`;
-
-      emailSubject = '🛠️ Admin Action Notification';
-      emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #212529; padding: 20px; text-align: center;">
-            <h1>🛠️ Admin Action</h1>
-            <h2>${logEntry.action}</h2>
-          </div>
-          <div style="padding: 20px; background: #f8f9fa;">
-            <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107;">
-              <h3 style="color: #856404; margin-top: 0;">⚙️ Administrative Action</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; font-weight: bold;">Time:</td><td>${timestamp}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Action:</td><td>${logEntry.action}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">IP Address:</td><td><code>${logEntry.ip}</code></td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Device:</td><td>${deviceInfo}</td></tr>
-                <tr><td style="padding: 8px 0; font-weight: bold;">Details:</td><td>${logEntry.details}</td></tr>
-              </table>
-            </div>
-          </div>
-          <div style="background: #343a40; color: white; padding: 15px; text-align: center; font-size: 12px;">
-            <p style="margin: 0;">Secure Webpage System - Built by Bibek Sha</p>
-          </div>
-        </div>
-      `;
-      emailText = `ADMIN ACTION: ${logEntry.action}\n\n` +
-        `Time: ${timestamp}\n` +
-        `IP: ${logEntry.ip}\n` +
-        `Device: ${deviceInfo}\n` +
-        `Details: ${logEntry.details}`;
-      break;
-  }
-
-  // Send notifications
-  const promises = [];
-  if (telegramMessage) {
-    promises.push(sendTelegramNotification(telegramMessage));
-  }
-  if (emailSubject && emailHtml) {
-    promises.push(sendEmailNotification(emailSubject, emailHtml, emailText));
-  }
-
-  try {
-    await Promise.all(promises);
-  } catch (error) {
-    console.error('❌ Notification error:', error.message);
-  }
-}
+// Import notification services
+const { sendSecurityNotification, testNotifications, getNotificationSettings } = require('./services/notificationManager');
+const { validateTelegramConfig } = require('./services/telegramService');
+const { validateEmailConfig } = require('./services/emailService');
 
 // Function to get or create persistent secret key
 function getOrCreateSecret() {
@@ -1187,173 +876,39 @@ app.get('/admin/export-logs', requireAuth, (req, res) => {
 
 // Admin: Get notification settings (protected)
 app.get('/admin/notification-settings', requireAuth, (req, res) => {
-  res.json({
-    enabled: NOTIFICATION_CONFIG.enabled,
-    telegram: {
-      enabled: NOTIFICATION_CONFIG.telegram.enabled,
-      configured: !!(NOTIFICATION_CONFIG.telegram.botToken && NOTIFICATION_CONFIG.telegram.chatId)
-    },
-    email: {
-      enabled: NOTIFICATION_CONFIG.email.enabled,
-      configured: !!(NOTIFICATION_CONFIG.email.auth.user && NOTIFICATION_CONFIG.email.to)
-    },
-    notifications: NOTIFICATION_CONFIG.notifications
-  });
+  res.json(getNotificationSettings());
 });
 
 // Admin: Validate Email setup (protected)
 app.get('/admin/validate-email', requireAuth, (req, res) => {
-  const validation = {
-    enabled: NOTIFICATION_CONFIG.email.enabled,
-    userSet: !!NOTIFICATION_CONFIG.email.auth.user,
-    passSet: !!NOTIFICATION_CONFIG.email.auth.pass,
-    fromSet: !!NOTIFICATION_CONFIG.email.from,
-    toSet: !!NOTIFICATION_CONFIG.email.to,
-    serviceSet: !!NOTIFICATION_CONFIG.email.service,
-    transporterCreated: !!emailTransporter
-  };
-  
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  validation.fromValid = validation.fromSet && emailRegex.test(NOTIFICATION_CONFIG.email.from);
-  validation.toValid = validation.toSet && emailRegex.test(NOTIFICATION_CONFIG.email.to);
-  validation.userValid = validation.userSet && emailRegex.test(NOTIFICATION_CONFIG.email.auth.user);
-  
-  validation.allValid = validation.enabled && validation.userSet && validation.passSet && 
-                       validation.fromSet && validation.toSet && validation.transporterCreated &&
-                       validation.fromValid && validation.toValid && validation.userValid;
-  
-  // Add configuration details (without sensitive info)
-  validation.config = {
-    service: NOTIFICATION_CONFIG.email.service,
-    host: NOTIFICATION_CONFIG.email.host || 'Using service default',
-    port: NOTIFICATION_CONFIG.email.port,
-    secure: NOTIFICATION_CONFIG.email.secure,
-    from: NOTIFICATION_CONFIG.email.from,
-    to: NOTIFICATION_CONFIG.email.to,
-    user: NOTIFICATION_CONFIG.email.auth.user
-  };
-  
-  res.json(validation);
+  res.json(validateEmailConfig());
 });
 
 // Admin: Validate Telegram setup (protected)
 app.get('/admin/validate-telegram', requireAuth, (req, res) => {
-  const validation = {
-    enabled: NOTIFICATION_CONFIG.telegram.enabled,
-    botTokenSet: !!NOTIFICATION_CONFIG.telegram.botToken,
-    chatIdSet: !!NOTIFICATION_CONFIG.telegram.chatId,
-    botTokenFormat: false,
-    chatIdFormat: false
-  };
-  
-  // Validate bot token format
-  if (NOTIFICATION_CONFIG.telegram.botToken) {
-    const tokenRegex = /^\d+:[A-Za-z0-9_-]+$/;
-    validation.botTokenFormat = tokenRegex.test(NOTIFICATION_CONFIG.telegram.botToken);
-    validation.botTokenLength = NOTIFICATION_CONFIG.telegram.botToken.length;
-  }
-  
-  // Validate chat ID format
-  if (NOTIFICATION_CONFIG.telegram.chatId) {
-    validation.chatIdFormat = !isNaN(NOTIFICATION_CONFIG.telegram.chatId);
-    validation.chatIdValue = NOTIFICATION_CONFIG.telegram.chatId;
-    validation.chatIdType = typeof NOTIFICATION_CONFIG.telegram.chatId;
-  }
-  
-  validation.allValid = validation.enabled && validation.botTokenSet && validation.chatIdSet && 
-                       validation.botTokenFormat && validation.chatIdFormat;
-  
-  res.json(validation);
+  res.json(validateTelegramConfig());
 });
 
 // Admin: Test notifications (protected)
-app.post('/admin/test-notifications', requireAuth, (req, res) => {
+app.post('/admin/test-notifications', requireAuth, async (req, res) => {
   const { type } = req.body; // 'telegram', 'email', or 'both'
   const clientIP = getClientIP(req);
-  const userAgent = req.headers['user-agent'] || '';
-  const deviceInfo = parseUserAgent(userAgent);
+  const deviceInfo = parseUserAgent(req.headers['user-agent'] || '');
 
-  const testLog = {
-    timestamp: new Date().toISOString(),
-    ip: clientIP,
-    userAgent: userAgent,
-    browser: deviceInfo.browser,
-    os: deviceInfo.os,
-    device: deviceInfo.device,
-    location: 'Test Location',
-    sessionId: 'test-session-123',
-    message: 'Test notification from admin panel'
-  };
-
-  const promises = [];
-
-  if (type === 'telegram' || type === 'both') {
-    const testMessage = `🧪 <b>TEST NOTIFICATION</b>\n\n` +
-      `✅ <b>Notification Test</b>\n` +
-      `🕐 Time: ${new Date().toLocaleString()}\n` +
-      `🌐 IP: <code>${clientIP}</code>\n` +
-      `💻 Device: ${deviceInfo.browser}/${deviceInfo.os}\n` +
-      `👤 Initiated by: Admin\n\n` +
-      `<i>This is a test notification from your secure webpage system.</i>`;
-
-    promises.push(sendTelegramNotification(testMessage));
-  }
-
-  if (type === 'email' || type === 'both') {
-    const testSubject = '🧪 Test Notification - Secure Webpage System';
-    const testHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 20px; text-align: center;">
-          <h1>🧪 Test Notification</h1>
-          <h2>System Test Successful</h2>
-        </div>
-        <div style="padding: 20px; background: #f8f9fa;">
-          <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #17a2b8;">
-            <h3 style="color: #17a2b8; margin-top: 0;">✅ Notification System Working</h3>
-            <p>This is a test notification sent from your secure webpage admin panel.</p>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr><td style="padding: 8px 0; font-weight: bold;">Test Time:</td><td>${new Date().toLocaleString()}</td></tr>
-              <tr><td style="padding: 8px 0; font-weight: bold;">Initiated From:</td><td><code>${clientIP}</code></td></tr>
-              <tr><td style="padding: 8px 0; font-weight: bold;">Admin Device:</td><td>${deviceInfo.browser}/${deviceInfo.os}</td></tr>
-            </table>
-            <p style="margin-top: 15px; color: #17a2b8;"><strong>Your notification system is working correctly!</strong></p>
-          </div>
-        </div>
-        <div style="background: #343a40; color: white; padding: 15px; text-align: center; font-size: 12px;">
-          <p style="margin: 0;">Secure Webpage System - Built by Bibek Sha</p>
-        </div>
-      </div>
-    `;
-    const testText = `TEST NOTIFICATION - Secure Webpage System\n\n` +
-      `This is a test notification from your admin panel.\n` +
-      `Test Time: ${new Date().toLocaleString()}\n` +
-      `Your notification system is working correctly!`;
-
-    promises.push(sendEmailNotification(testSubject, testHtml, testText));
-  }
-
-  Promise.all(promises)
-    .then(results => {
-      const telegramSent = type === 'telegram' || type === 'both' ? results[0] : null;
-      const emailSent = type === 'email' || type === 'both' ? results[type === 'both' ? 1 : 0] : null;
-
-      res.json({
-        success: true,
-        message: 'Test notifications sent',
-        results: {
-          telegram: telegramSent,
-          email: emailSent
-        }
-      });
-    })
-    .catch(error => {
-      res.status(500).json({
-        success: false,
-        message: 'Test notification failed',
-        error: error.message
-      });
+  try {
+    const results = await testNotifications(type, clientIP, deviceInfo);
+    res.json({
+      success: true,
+      message: 'Test notifications sent',
+      results
     });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Test notification failed',
+      error: error.message
+    });
+  }
 });
 
 // Check authentication status with session info
