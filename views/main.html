@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏠 Main Dashboard - Secure Area</title>
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <h1>🏠 Secure Dashboard</h1>
+            <div class="user-info">
+                <span id="userWelcome">Welcome, Authorized User</span>
+                <button id="logoutBtn" class="logout-btn">🚪 Logout</button>
+            </div>
+        </div>
+    </header>
+    
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="welcome-section">
+                <h2>✅ Authentication Successful</h2>
+                <p>You have successfully accessed the secure area using your Microsoft authentication key.</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Secure Access</h3>
+                    <p>Protected by hardcoded Microsoft authentication key</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">👤</div>
+                    <h3>Single User</h3>
+                    <p>Designed for one authorized user only</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Session Protected</h3>
+                    <p>All pages validate authentication status</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Fast & Secure</h3>
+                    <p>Minimal overhead with maximum security</p>
+                </div>
+            </div>
+            
+            <div class="actions-section">
+                <h3>Available Actions</h3>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="checkAuthStatus()">
+                        🔍 Check Auth Status
+                    </button>
+                    <button class="action-btn" onclick="showSessionInfo()">
+                        📊 Session Info
+                    </button>
+                    <button class="action-btn" onclick="showSecretInfo()">
+                        🔑 Secret Key Info
+                    </button>
+                </div>
+            </div>
+            
+            <div class="admin-section">
+                <h3>🛠️ Admin Controls</h3>
+                <div class="admin-buttons">
+                    <button class="admin-btn regenerate-btn" onclick="regenerateSecret()">
+                        🔄 Regenerate Secret Key
+                    </button>
+                    <a href="/setup" target="_blank" class="admin-btn setup-btn">
+                        📱 View Setup Page
+                    </a>
+                </div>
+                <p class="admin-warning">
+                    ⚠️ <strong>Warning:</strong> Regenerating the secret key will require you to reconfigure your Microsoft Authenticator app.
+                </p>
+            </div>
+            
+            <div id="infoDisplay" class="info-display" style="display: none;"></div>
+        </div>
+    </main>
+    
+    <footer class="main-footer">
+        <p>🔐 Secure Webpage System | Built by <strong>Bibek Sha</strong></p>
+    </footer>
+    
+    <script src="/js/main.js"></script>
+</body>
+</html>

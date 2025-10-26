@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Secure Login - Microsoft Authentication</title>
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🔐 Secure Access</h1>
+                <p>Microsoft Authentication Required</p>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="input-group">
+                    <label for="authCode">Microsoft Authenticator Code</label>
+                    <div class="code-input-container">
+                        <input type="text" class="code-digit" id="digit1" maxlength="1" pattern="[0-9]" required>
+                        <input type="text" class="code-digit" id="digit2" maxlength="1" pattern="[0-9]" required>
+                        <input type="text" class="code-digit" id="digit3" maxlength="1" pattern="[0-9]" required>
+                        <input type="text" class="code-digit" id="digit4" maxlength="1" pattern="[0-9]" required>
+                        <input type="text" class="code-digit" id="digit5" maxlength="1" pattern="[0-9]" required>
+                        <input type="text" class="code-digit" id="digit6" maxlength="1" pattern="[0-9]" required>
+                    </div>
+                    <p class="input-hint">Enter the 6-digit code from your Microsoft Authenticator app</p>
+                </div>
+                
+                <button type="submit" class="login-btn">
+                    <span class="btn-text">Authenticate</span>
+                    <span class="btn-loading" style="display: none;">Verifying...</span>
+                </button>
+            </form>
+            
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+            
+            <div class="login-footer">
+                <p>🛡️ Authorized access only</p>
+                <p><a href="/setup" target="_blank" class="setup-link">📱 Setup Microsoft Authenticator</a></p>
+                <small>Built by Bibek Sha</small>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/js/login.js"></script>
+</body>
+</html>

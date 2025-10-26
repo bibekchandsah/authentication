@@ -1,0 +1,370 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.setup-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.setup-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.setup-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.setup-header h1 {
+    color: #333;
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.setup-header p {
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.setup-content {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.setup-step {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 15px;
+    border: 1px solid #e9ecef;
+}
+
+.setup-step h3 {
+    color: #2d3748;
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.qr-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.qr-code {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    min-height: 200px;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-code img {
+    max-width: 100%;
+    height: auto;
+}
+
+.loading {
+    color: #666;
+    font-style: italic;
+}
+
+.setup-divider {
+    text-align: center;
+    position: relative;
+    margin: 20px 0;
+}
+
+.setup-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #ddd;
+}
+
+.setup-divider span {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0 20px;
+    color: #666;
+    font-weight: 500;
+}
+
+.manual-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.manual-entry label {
+    font-weight: 500;
+    color: #333;
+}
+
+.manual-entry input {
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    font-family: 'Courier New', monospace;
+}
+
+.secret-key-container {
+    display: flex;
+    gap: 10px;
+}
+
+.secret-key-container input {
+    flex: 1;
+}
+
+.copy-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.copy-btn:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.step-description {
+    color: #666;
+    font-size: 0.95rem;
+    margin-top: 10px;
+    line-height: 1.5;
+}
+
+.setup-instructions {
+    background: #e3f2fd;
+    padding: 25px;
+    border-radius: 15px;
+    border-left: 4px solid #2196f3;
+}
+
+.setup-instructions h3 {
+    color: #1976d2;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.setup-instructions ol {
+    color: #333;
+    line-height: 1.6;
+    padding-left: 20px;
+}
+
+.setup-instructions li {
+    margin-bottom: 8px;
+}
+
+.setup-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.back-btn, .test-btn {
+    padding: 12px 25px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.back-btn {
+    background: #6c757d;
+    color: white;
+}
+
+.back-btn:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.test-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.test-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.modal-content h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.test-code-container {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.test-digit {
+    width: 40px;
+    height: 50px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    font-family: 'Courier New', monospace;
+}
+
+.test-digit:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.test-digit.filled {
+    background: #e8f5e8;
+    border-color: #28a745;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.cancel-btn, .verify-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn {
+    background: #6c757d;
+    color: white;
+}
+
+.verify-btn {
+    background: #28a745;
+    color: white;
+}
+
+.cancel-btn:hover {
+    background: #5a6268;
+}
+
+.verify-btn:hover {
+    background: #218838;
+}
+
+.test-result {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.test-result.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.test-result.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+@media (max-width: 768px) {
+    .setup-card {
+        padding: 20px;
+        margin: 10px;
+    }
+    
+    .setup-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .secret-key-container {
+        flex-direction: column;
+    }
+    
+    .setup-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .back-btn, .test-btn {
+        width: 200px;
+    }
+}

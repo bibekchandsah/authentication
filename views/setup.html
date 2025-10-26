@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 Microsoft Authenticator Setup</title>
+    <link rel="stylesheet" href="/css/setup.css">
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-card">
+            <div class="setup-header">
+                <h1>📱 Microsoft Authenticator Setup</h1>
+                <p>Configure your authenticator app to generate login codes</p>
+            </div>
+            
+            <div class="setup-content">
+                <div class="setup-step">
+                    <h3>Step 1: Scan QR Code</h3>
+                    <div class="qr-container">
+                        <div id="qrCode" class="qr-code">
+                            <div class="loading">Loading QR Code...</div>
+                        </div>
+                    </div>
+                    <p class="step-description">
+                        Open Microsoft Authenticator app and scan this QR code
+                    </p>
+                </div>
+                
+                <div class="setup-divider">
+                    <span>OR</span>
+                </div>
+                
+                <div class="setup-step">
+                    <h3>Step 2: Manual Entry</h3>
+                    <div class="manual-entry">
+                        <label>Secret Key:</label>
+                        <div class="secret-key-container">
+                            <input type="text" id="secretKey" readonly>
+                            <button id="copyBtn" class="copy-btn">📋 Copy</button>
+                        </div>
+                        <label>Service Name:</label>
+                        <input type="text" id="serviceName" readonly>
+                    </div>
+                    <p class="step-description">
+                        Manually add account in Microsoft Authenticator using these details
+                    </p>
+                </div>
+                
+                <div class="setup-instructions">
+                    <h3>📖 Instructions:</h3>
+                    <ol>
+                        <li>Open <strong>Microsoft Authenticator</strong> app on your phone</li>
+                        <li>Tap <strong>"Add account"</strong></li>
+                        <li>Select <strong>"Other (Google, Facebook, etc.)"</strong></li>
+                        <li>Either scan the QR code above OR enter the secret key manually</li>
+                        <li>Your app will start generating 6-digit codes every 30 seconds</li>
+                        <li>Use these codes to login to the secure webpage</li>
+                    </ol>
+                </div>
+                
+                <div class="setup-actions">
+                    <a href="/login" class="back-btn">🔙 Back to Login</a>
+                    <button id="testBtn" class="test-btn">🧪 Test Code</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="testModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>🧪 Test Your Authenticator Code</h3>
+            <p>Enter the 6-digit code from your Microsoft Authenticator app:</p>
+            <div class="test-code-container">
+                <input type="text" class="test-digit" id="testDigit1" maxlength="1" pattern="[0-9]">
+                <input type="text" class="test-digit" id="testDigit2" maxlength="1" pattern="[0-9]">
+                <input type="text" class="test-digit" id="testDigit3" maxlength="1" pattern="[0-9]">
+                <input type="text" class="test-digit" id="testDigit4" maxlength="1" pattern="[0-9]">
+                <input type="text" class="test-digit" id="testDigit5" maxlength="1" pattern="[0-9]">
+                <input type="text" class="test-digit" id="testDigit6" maxlength="1" pattern="[0-9]">
+            </div>
+            <div class="modal-actions">
+                <button id="cancelTest" class="cancel-btn">Cancel</button>
+                <button id="verifyTest" class="verify-btn">Verify</button>
+            </div>
+            <div id="testResult" class="test-result"></div>
+        </div>
+    </div>
+    
+    <script src="/js/setup.js"></script>
+</body>
+</html>

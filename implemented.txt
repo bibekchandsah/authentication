@@ -1,0 +1,23 @@
+git init
+git add .
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/bibekchandsah/authentication.git
+git push -u origin main
+
+
+git remote add origin https://github.com/bibekchandsah/authentication.git
+git branch -M main
+git push -u origin main
+
+Microsoft Authenticator integration with TOTP (Time-based One-Time Password)
+The .secret-key.json file contains your TOTP secret
+Just start the server and login with your 6-digit codes
+No need to reconfigure your authenticator app!
+Session-based authentication
+Click "🔄 Regenerate Secret Key" or Delete .secret-key.json file to generate a new secret key
+6 Separate Input Boxes: Each digit has its own input field
+Numbers Only: Automatically filters out non-numeric characters
+Double-Click Clear: Double-click any box to clear all inputs
+Auto-Submit: No need to click login - submits automatically
+
