@@ -196,14 +196,16 @@ const SESSION_CONFIG = {
 
 // Session configuration with activity tracking
 app.use(session({
-  secret: 'secure-session-secret-key-2024',
-  resave: false,
+  secret: process.env.SESSION_SECRET || 'secure-session-secret-key-2024',
+  resave: true, // Force session save even if unmodified
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS in production
+    secure: false, // Set to false for now to test on Render
     maxAge: SESSION_CONFIG.maxAge,
-    httpOnly: true // Prevent XSS attacks
-  }
+    httpOnly: true, // Prevent XSS attacks
+    sameSite: 'lax' // Help with cross-site issues
+  },
+  name: 'sessionId' // Custom session name
 }));
 
 // Session activity tracking middleware
@@ -251,9 +253,14 @@ app.use((req, res, next) => {
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
+  console.log(`🔐 Auth check - Session ID: ${req.sessionID}`);
+  console.log(`🔐 Auth check - Authenticated: ${req.session?.authenticated}`);
+  console.log(`🔐 Auth check - Session exists: ${!!req.session}`);
+  
   if (req.session && req.session.authenticated) {
     return next();
   } else {
+    console.log(`❌ Auth failed - redirecting to login`);
     return res.redirect('/login');
   }
 };
@@ -317,6 +324,8 @@ app.post('/login', async (req, res) => {
     req.session.deviceInfo = deviceInfo;
 
     console.log(`✅ Successful login from IP: ${clientIP}`);
+    console.log(`🔑 Session ID: ${req.sessionID}`);
+    console.log(`👤 Session authenticated: ${req.session.authenticated}`);
 
     // Log successful login
     const loginLog = await logSuccessfulLogin(req, req.sessionID);
@@ -350,6 +359,8 @@ app.post('/login', async (req, res) => {
 
 // Main page (protected)
 app.get('/main', requireAuth, (req, res) => {
+  console.log(`📄 Main page accessed by session: ${req.sessionID}`);
+  console.log(`👤 Session authenticated: ${req.session?.authenticated}`);
   res.sendFile(path.join(__dirname, 'views', 'main.html'));
 });
 

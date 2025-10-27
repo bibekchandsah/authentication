@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Success - show success state and redirect
                 showInputSuccess();
                 hideRateLimit();
+                console.log('Login successful, redirecting to /main');
                 setTimeout(() => {
                     window.location.href = '/main';
                 }, 500);

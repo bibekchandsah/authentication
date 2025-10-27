@@ -40,13 +40,13 @@ function getClientIP(req) {
     (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
     req.ip ||
     '127.0.0.1';
-  
+
   // Handle comma-separated IPs (common with proxies/load balancers)
   if (typeof ip === 'string' && ip.includes(',')) {
     // Take the first IP (original client IP)
     ip = ip.split(',')[0].trim();
   }
-  
+
   return ip;
 }
 
@@ -57,7 +57,7 @@ async function getDeviceFingerprint(req) {
   const acceptEncoding = req.headers['accept-encoding'] || '';
   const clientIP = getClientIP(req);
   const deviceInfo = parseUserAgent(userAgent);
-  
+
   // Get enhanced location info (async)
   const locationInfo = await getLocationInfo(clientIP);
 
