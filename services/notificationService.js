@@ -49,22 +49,25 @@ function initializeEmailTransporter() {
       console.log('- Host:', NOTIFICATION_CONFIG.email.host || 'Using service default');
       console.log('- Port:', NOTIFICATION_CONFIG.email.port);
 
-      emailTransporter = nodemailer.createTransport({
-        service: NOTIFICATION_CONFIG.email.service,
-        host: NOTIFICATION_CONFIG.email.host,
-        port: NOTIFICATION_CONFIG.email.port,
-        secure: NOTIFICATION_CONFIG.email.secure,
+      // Try alternative Gmail configuration for cloud hosting
+      const gmailConfig = {
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // Use STARTTLS
         auth: NOTIFICATION_CONFIG.email.auth,
         connectionTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
         greetingTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
         socketTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
-        // Additional Gmail-specific settings for Render
-        pool: true,
+        // Cloud hosting optimizations
+        pool: false, // Disable connection pooling for cloud
         maxConnections: 1,
-        maxMessages: 3,
-        rateDelta: 1000,
-        rateLimit: 5
-      });
+        requireTLS: true,
+        tls: {
+          rejectUnauthorized: false // Allow self-signed certificates
+        }
+      };
+
+      emailTransporter = nodemailer.createTransport(gmailConfig);
 
       console.log('📧 Email notifications configured successfully');
 

@@ -1,5 +1,6 @@
 const { sendTelegramNotification } = require('./telegramService');
 const { sendEmailNotification } = require('./emailService');
+const { sendSendGridEmail } = require('./sendgridService');
 const { getNotificationConfig } = require('./notificationService');
 const { 
   generateTelegramMessage, 
@@ -27,14 +28,33 @@ async function sendSecurityNotification(type, logEntry) {
       }
     }
 
-    // Generate Email content
+    // Generate Email content (try SendGrid first, fallback to Gmail)
     if (config.email.enabled) {
       const emailSubject = generateEmailSubject(type, logEntry);
       const emailHtml = generateEmailHTML(type, logEntry);
       const emailText = generateEmailText(type, logEntry);
       
       if (emailSubject && emailHtml && emailText) {
-        promises.push(sendEmailNotification(emailSubject, emailHtml, emailText));
+        // Smart email sending with fallback
+        promises.push(
+          (async () => {
+            try {
+              // Try SendGrid first
+              const sendGridResult = await sendSendGridEmail(emailSubject, emailHtml, emailText);
+              if (sendGridResult) {
+                return true;
+              }
+              
+              // If SendGrid not configured or failed, try Gmail SMTP
+              console.log('⚠️ SendGrid not available, trying Gmail SMTP...');
+              return await sendEmailNotification(emailSubject, emailHtml, emailText);
+              
+            } catch (error) {
+              console.error('❌ All email methods failed:', error.message);
+              return false;
+            }
+          })()
+        );
       }
     }
 

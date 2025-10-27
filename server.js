@@ -625,6 +625,8 @@ app.post('/admin/test-notifications', requireAuth, async (req, res) => {
   }
 });
 
+
+
 // Check authentication status with session info
 app.get('/auth-status', (req, res) => {
   if (req.session && req.session.authenticated) {
