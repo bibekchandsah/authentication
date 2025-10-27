@@ -1,6 +1,6 @@
 const { getNotificationConfig, getEmailTransporter } = require('./notificationService');
 
-// Email notification function
+// Email notification function with retry logic
 async function sendEmailNotification(subject, htmlContent, textContent) {
   const config = getNotificationConfig();
   const emailTransporter = getEmailTransporter();
@@ -10,22 +10,39 @@ async function sendEmailNotification(subject, htmlContent, textContent) {
     return false;
   }
 
-  try {
-    const mailOptions = {
-      from: config.email.from,
-      to: config.email.to,
-      subject: subject,
-      text: textContent,
-      html: htmlContent
-    };
+  const maxRetries = parseInt(process.env.EMAIL_RETRY_ATTEMPTS) || 3;
+  const retryDelay = parseInt(process.env.EMAIL_RETRY_DELAY) || 5000;
 
-    await emailTransporter.sendMail(mailOptions);
-    console.log('📧 Email notification sent successfully');
-    return true;
-  } catch (error) {
-    console.error('❌ Email notification error:', error.message);
-    return false;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📧 Sending email (attempt ${attempt}/${maxRetries})...`);
+      
+      const mailOptions = {
+        from: config.email.from,
+        to: config.email.to,
+        subject: subject,
+        text: textContent,
+        html: htmlContent
+      };
+
+      await emailTransporter.sendMail(mailOptions);
+      console.log('📧 Email notification sent successfully');
+      return true;
+      
+    } catch (error) {
+      console.error(`❌ Email attempt ${attempt} failed:`, error.message);
+      
+      if (attempt < maxRetries) {
+        console.log(`⏳ Retrying in ${retryDelay/1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      } else {
+        console.error('❌ All email attempts failed');
+        return false;
+      }
+    }
   }
+  
+  return false;
 }
 
 // Validate Email configuration

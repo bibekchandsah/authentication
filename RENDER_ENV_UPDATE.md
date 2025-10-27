@@ -23,24 +23,24 @@ Make sure you have all these environment variables set in Render:
 ```bash
 # Telegram Configuration
 TELEGRAM_ENABLED=true
-TELEGRAM_BOT_TOKEN=8391723349:AAHqEsjPoOEbyBfItiRv5l7L9eySCB-LE2s
-TELEGRAM_CHAT_ID=721000596
+TELEGRAM_BOT_TOKEN=8391723349:AAHqEsjPoOEbyBfItiRv5l7L9eySCB-yiu
+TELEGRAM_CHAT_ID=721000599
 
 # Email Configuration
 EMAIL_ENABLED=true
 EMAIL_SERVICE=gmail
 EMAIL_USER=bibekchandsah@gmail.com
-EMAIL_PASS=otky yowb kada dkat
+EMAIL_PASS=otky yowb kada rete
 EMAIL_FROM=bibekchandsah@gmail.com
 EMAIL_TO=bibeksha48@gmail.com
 EMAIL_PORT=587
 
 # IPInfo API Configuration
 IPINFO_ENABLED=true
-IPINFO_TOKEN=ccb3ba52662beb
+IPINFO_TOKEN=ccb3ba52662baa
 
 # TOTP Secret Configuration (NEW!)
-TOTP_SECRET=HB6SUKD5JZCUIN2TKU6FCVSPJI3WKKLRPFHXMRSTOROUS6R7HY3Q
+TOTP_SECRET=HB6SUKD5JZCUIN2TKU6FCVSPJI3WKKLRPFHXMRSTOROUS6R7HY23
 ```
 
 ### 4. Deploy

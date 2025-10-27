@@ -48,29 +48,40 @@ function initializeEmailTransporter() {
       console.log('- To:', NOTIFICATION_CONFIG.email.to);
       console.log('- Host:', NOTIFICATION_CONFIG.email.host || 'Using service default');
       console.log('- Port:', NOTIFICATION_CONFIG.email.port);
-      
+
       emailTransporter = nodemailer.createTransport({
         service: NOTIFICATION_CONFIG.email.service,
         host: NOTIFICATION_CONFIG.email.host,
         port: NOTIFICATION_CONFIG.email.port,
         secure: NOTIFICATION_CONFIG.email.secure,
         auth: NOTIFICATION_CONFIG.email.auth,
-        connectionTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 10000,
-        greetingTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 10000,
-        socketTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 10000
+        connectionTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
+        greetingTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
+        socketTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
+        // Additional Gmail-specific settings for Render
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 3,
+        rateDelta: 1000,
+        rateLimit: 5
       });
-      
+
       console.log('📧 Email notifications configured successfully');
-      
-      // Test the connection
+
+      // Test the connection with timeout
+      const connectionTimeout = setTimeout(() => {
+        console.log('⏳ Email connection test taking longer than expected...');
+      }, 15000);
+
       emailTransporter.verify((error, success) => {
+        clearTimeout(connectionTimeout);
         if (error) {
           console.error('❌ Email connection test failed:', error.message);
         } else {
           console.log('✅ Email server connection verified');
         }
       });
-      
+
     } catch (error) {
       console.error('❌ Email configuration error:', error.message);
       emailTransporter = null;
