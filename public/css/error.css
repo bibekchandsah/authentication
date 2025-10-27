@@ -1,0 +1,462 @@
+/* Error Pages Styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+    line-height: 1.4;
+    overflow: hidden;
+}
+
+.error-container {
+    max-width: 700px;
+    width: 90%;
+    max-height: 95vh;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    backdrop-filter: blur(10px);
+    animation: slideIn 0.6s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.error-container.access-denied {
+    background: rgba(255, 248, 248, 0.95);
+    border: 2px solid rgba(220, 53, 69, 0.2);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.error-content {
+    padding: 25px;
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.error-icon {
+    margin-bottom: 15px;
+}
+
+.icon-404, .icon-access-denied {
+    font-size: 60px;
+    display: inline-block;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.icon-404:hover {
+    transform: scale(1.1);
+}
+
+.icon-access-denied {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.error-info {
+    margin-bottom: 20px;
+}
+
+.error-code {
+    font-size: 80px;
+    font-weight: 900;
+    color: #667eea;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    line-height: 1;
+}
+
+.access-denied .error-code {
+    color: #dc3545;
+}
+
+.error-title {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.error-message {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.3;
+}
+
+.error-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 350px;
+    margin: 0 auto 15px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 15px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #667eea;
+}
+
+.access-denied .detail-item {
+    background: rgba(220, 53, 69, 0.1);
+    border-left-color: #dc3545;
+}
+
+.detail-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.detail-text {
+    font-size: 13px;
+    color: #555;
+    text-align: left;
+    line-height: 1.2;
+}
+
+.error-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.action-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.action-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.access-denied .action-btn.primary {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.access-denied .action-btn.primary:hover {
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
+.action-btn.secondary {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.action-btn.secondary:hover {
+    background: rgba(102, 126, 234, 0.2);
+    transform: translateY(-1px);
+}
+
+.access-denied .action-btn.secondary {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border-color: rgba(220, 53, 69, 0.2);
+}
+
+.access-denied .action-btn.secondary:hover {
+    background: rgba(220, 53, 69, 0.2);
+}
+
+.error-help {
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto 15px;
+    padding: 15px;
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.error-help h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.error-help ul, .error-help ol {
+    padding-left: 18px;
+    color: #555;
+}
+
+.error-help li {
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.error-help a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.error-help a:hover {
+    text-decoration: underline;
+}
+
+.access-denied .error-help a {
+    color: #dc3545;
+}
+
+.security-notice {
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto 15px;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+    border-radius: 8px;
+    border-left: 3px solid #ffc107;
+}
+
+.notice-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.notice-icon {
+    font-size: 16px;
+}
+
+.notice-title {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.security-notice p {
+    color: #555;
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.security-notice ul {
+    padding-left: 16px;
+    color: #555;
+}
+
+.security-notice li {
+    margin-bottom: 3px;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.error-footer {
+    background: rgba(52, 58, 64, 0.9);
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.error-footer p {
+    margin-bottom: 3px;
+    line-height: 1.2;
+}
+
+.timestamp {
+    opacity: 0.8;
+    font-size: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .error-container {
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 10px;
+    }
+    
+    .error-content {
+        padding: 20px 15px;
+    }
+    
+    .error-code {
+        font-size: 60px;
+    }
+    
+    .error-title {
+        font-size: 22px;
+    }
+    
+    .error-message {
+        font-size: 14px;
+    }
+    
+    .error-actions {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .action-btn {
+        width: 100%;
+        max-width: 200px;
+        justify-content: center;
+        padding: 10px 16px;
+    }
+    
+    .error-details {
+        gap: 6px;
+    }
+    
+    .detail-item {
+        padding: 6px 12px;
+    }
+    
+    .icon-404, .icon-access-denied {
+        font-size: 45px;
+    }
+    
+    .error-help, .security-notice {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .error-container {
+        max-height: 100vh;
+    }
+    
+    .error-content {
+        padding: 15px 10px;
+    }
+    
+    .error-code {
+        font-size: 50px;
+    }
+    
+    .error-title {
+        font-size: 20px;
+    }
+    
+    .error-message {
+        font-size: 13px;
+    }
+    
+    .error-help, .security-notice {
+        padding: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .error-help h3 {
+        font-size: 14px;
+    }
+    
+    .error-help li {
+        font-size: 12px;
+    }
+    
+    .icon-404, .icon-access-denied {
+        font-size: 40px;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    }
+    
+    .error-container {
+        background: rgba(44, 62, 80, 0.95);
+        color: #ecf0f1;
+    }
+    
+    .error-container.access-denied {
+        background: rgba(44, 62, 80, 0.95);
+        border-color: rgba(231, 76, 60, 0.3);
+    }
+    
+    .error-title {
+        color: #ecf0f1;
+    }
+    
+    .error-message {
+        color: #bdc3c7;
+    }
+    
+    .detail-text {
+        color: #bdc3c7;
+    }
+    
+    .error-help {
+        background: rgba(52, 73, 94, 0.8);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .error-help h3 {
+        color: #ecf0f1;
+    }
+    
+    .error-help ul, .error-help ol {
+        color: #bdc3c7;
+    }
+}

@@ -33,7 +33,9 @@ Warning Phase: 5 minutes before expiry, modal appears
 Extension Options: User can extend or logout immediately
 Logging System: Track login attempts, IPs, and timestamps for security audits.
 Activity Logs: Display a table of last login time, device info, and access history.
-Notifications via Email/Telegram: Notify you instantly when a successful login occurs.
+Notifications via Telegram: Notify you instantly when a successful login occurs.
+Custom 404 / Access Denied Pages: Add a friendly “Access Denied” page for unauthorized attempts.
+
 
 
 to be implemented
@@ -45,3 +47,4 @@ Activity Logs: Display a table of last login time, device info, and access histo
 Browser Fingerprinting: Detect if an unauthorized browser tries to log in even with the correct key.
 Notifications via Email/Telegram: Notify you instantly when a successful login occurs.
 Custom 404 / Access Denied Pages: Add a friendly “Access Denied” page for unauthorized attempts.
+only signin with "bibeksha48@gmail.com" gmail account

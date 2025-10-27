@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚫 Access Denied - Secure Webpage</title>
+    <link rel="stylesheet" href="/css/error.css">
+</head>
+<body>
+    <div class="error-container access-denied">
+        <div class="error-content">
+            <div class="error-icon">
+                <div class="icon-access-denied">🚫</div>
+            </div>
+            
+            <div class="error-info">
+                <h1 class="error-code">403</h1>
+                <h2 class="error-title">Access Denied</h2>
+                <p class="error-message">
+                    You don't have permission to access this resource.
+                </p>
+                
+                <div class="error-details">
+                    <div class="detail-item">
+                        <span class="detail-icon">🔐</span>
+                        <span class="detail-text">Authentication required</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">🛡️</span>
+                        <span class="detail-text">This area is protected</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">📱</span>
+                        <span class="detail-text">Microsoft Authenticator required</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="error-actions">
+                <a href="/login" class="action-btn primary">
+                    🔐 Login Now
+                </a>
+                <a href="/setup" class="action-btn secondary" target="_blank">
+                    📱 Setup Authenticator
+                </a>
+                <button onclick="history.back()" class="action-btn secondary">
+                    ⬅️ Go Back
+                </button>
+            </div>
+            
+            <div class="error-help">
+                <h3>🔑 How to get access?</h3>
+                <ol>
+                    <li><strong>Setup Microsoft Authenticator:</strong> Visit the <a href="/setup" target="_blank">setup page</a></li>
+                    <li><strong>Scan QR Code:</strong> Use your authenticator app to scan the code</li>
+                    <li><strong>Login:</strong> Enter the 6-digit code from your app</li>
+                    <li><strong>Access Granted:</strong> You'll be redirected to the secure area</li>
+                </ol>
+            </div>
+            
+            <div class="security-notice">
+                <div class="notice-header">
+                    <span class="notice-icon">⚠️</span>
+                    <span class="notice-title">Security Notice</span>
+                </div>
+                <p>This system uses advanced security measures including:</p>
+                <ul>
+                    <li>🔐 TOTP-based authentication</li>
+                    <li>🛡️ Rate limiting protection</li>
+                    <li>📊 Security logging and monitoring</li>
+                    <li>📱 Real-time notifications</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="error-footer">
+            <p>🔐 Secure Webpage System | Built by <strong>Bibek Sha</strong></p>
+            <p class="timestamp">Access attempt at: <span id="timestamp"></span></p>
+        </div>
+    </div>
+    
+    <script>
+        // Display current timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // Add pulsing effect to the access denied icon
+        setInterval(() => {
+            const icon = document.querySelector('.icon-access-denied');
+            icon.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                icon.style.transform = 'scale(1)';
+            }, 300);
+        }, 2000);
+        
+        // Track unauthorized access attempt
+        fetch('/api/log-access-attempt', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                page: window.location.pathname,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            })
+        }).catch(() => {
+            // Silently fail if logging endpoint doesn't exist
+        });
+    </script>
+</body>
+</html>

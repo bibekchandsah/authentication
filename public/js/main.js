@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Show notification settings
+    // Show Telegram settings
     window.showNotificationSettings = async function() {
         try {
             const response = await fetch('/admin/notification-settings');
@@ -350,35 +350,32 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const settingsInfo = {
-                '--- Notification System ---': '',
+                '--- Telegram-Only Notification System ---': '',
                 'System Enabled': data.enabled ? '✅ Yes' : '❌ No',
-                '--- Telegram Settings ---': '',
+                'System Type': data.type || 'telegram-only',
+                '--- Telegram Configuration ---': '',
                 'Telegram Enabled': data.telegram.enabled ? '✅ Yes' : '❌ No',
                 'Telegram Configured': data.telegram.configured ? '✅ Yes' : '❌ No',
-                '--- Email Settings ---': '',
-                'Email Enabled': data.email.enabled ? '✅ Yes' : '❌ No',
-                'Email Configured': data.email.configured ? '✅ Yes' : '❌ No',
-                '--- Notification Types ---': '',
-                'Login Success': data.notifications.loginSuccess ? '✅ Enabled' : '❌ Disabled',
-                'Login Failed': data.notifications.loginFailed ? '✅ Enabled' : '❌ Disabled',
-                'Rate Limited': data.notifications.rateLimited ? '✅ Enabled' : '❌ Disabled',
-                'Admin Actions': data.notifications.adminActions ? '✅ Enabled' : '❌ Disabled',
-                'Session Expired': data.notifications.sessionExpired ? '✅ Enabled' : '❌ Disabled'
+                '--- Notification Events ---': '',
+                'Login Success': data.notifications.loginSuccess ? '📱 Telegram Only' : '❌ Disabled',
+                'Login Failed': data.notifications.loginFailed ? '📱 Telegram Only' : '❌ Disabled',
+                'Rate Limited': data.notifications.rateLimited ? '📱 Telegram Only' : '❌ Disabled',
+                'Admin Actions': data.notifications.adminActions ? '📱 Telegram Only' : '❌ Disabled',
+                'Session Expired': data.notifications.sessionExpired ? '📱 Telegram Only' : '❌ Disabled',
+                '--- Status ---': '',
+                'Email Notifications': '❌ Removed (Telegram-only system)'
             };
             
-            displayInfo('Notification Settings', settingsInfo);
+            displayInfo('Telegram Notification Settings', settingsInfo);
         } catch (error) {
             console.error('Notification settings error:', error);
             displayInfo('Error', { 'Message': 'Failed to fetch notification settings' });
         }
     };
 
-    // Test notifications
+    // Test Telegram notifications
     window.testNotifications = async function() {
-        const type = prompt('Test which notifications?\n\nOptions:\n- telegram\n- email\n- both\n\nEnter your choice:', 'both');
-        
-        if (!type || !['telegram', 'email', 'both'].includes(type.toLowerCase())) {
-            alert('Invalid option. Please choose: telegram, email, or both');
+        if (!confirm('Send a test notification to Telegram?')) {
             return;
         }
         
@@ -388,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ type: type.toLowerCase() })
+                body: JSON.stringify({ type: 'telegram' })
             });
 
             const data = await response.json();
@@ -397,23 +394,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const resultInfo = {
                     'Status': '✅ Test Completed',
                     'Message': data.message,
-                    'Test Type': type.toUpperCase(),
+                    'Test Type': 'TELEGRAM',
+                    'Telegram Result': data.results.telegram ? '✅ Sent' : '❌ Failed',
                     'Timestamp': new Date().toLocaleString()
                 };
                 
-                if (data.results.telegram !== null) {
-                    resultInfo['Telegram Result'] = data.results.telegram ? '✅ Sent' : '❌ Failed';
-                }
-                if (data.results.email !== null) {
-                    resultInfo['Email Result'] = data.results.email ? '✅ Sent' : '❌ Failed';
-                }
+                displayInfo('Telegram Test Results', resultInfo);
                 
-                displayInfo('Notification Test Results', resultInfo);
-                
-                if (data.results.telegram || data.results.email) {
-                    alert('Test notifications sent! Check your Telegram/Email for the test messages.');
+                if (data.results.telegram) {
+                    alert('✅ Test notification sent! Check your Telegram for the test message.');
                 } else {
-                    alert('Test notifications failed. Check your configuration and try again.');
+                    alert('❌ Test notification failed. Check your Telegram configuration and try again.');
                 }
             } else {
                 displayInfo('Test Failed', { 
@@ -423,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Test notification error:', error);
-            displayInfo('Error', { 'Message': 'Failed to send test notifications' });
+            displayInfo('Error', { 'Message': 'Failed to send test notification' });
         }
     };
 
@@ -462,48 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Validate Email setup
-    window.validateEmail = async function() {
-        try {
-            const response = await fetch('/admin/validate-email');
-            const data = await response.json();
-            
-            const validationInfo = {
-                '--- Email Configuration ---': '',
-                'Email Enabled': data.enabled ? '✅ Yes' : '❌ No',
-                'Email User Set': data.userSet ? '✅ Yes' : '❌ No',
-                'Email Password Set': data.passSet ? '✅ Yes' : '❌ No',
-                'From Address Set': data.fromSet ? '✅ Yes' : '❌ No',
-                'To Address Set': data.toSet ? '✅ Yes' : '❌ No',
-                'Service Set': data.serviceSet ? '✅ Yes' : '❌ No',
-                '--- Validation Results ---': '',
-                'User Email Valid': data.userValid ? '✅ Valid' : '❌ Invalid email format',
-                'From Email Valid': data.fromValid ? '✅ Valid' : '❌ Invalid email format',
-                'To Email Valid': data.toValid ? '✅ Valid' : '❌ Invalid email format',
-                'Transporter Created': data.transporterCreated ? '✅ Yes' : '❌ Failed to create',
-                '--- Configuration ---': '',
-                'Service': data.config?.service || 'Not set',
-                'Host': data.config?.host || 'Not set',
-                'Port': data.config?.port || 'Not set',
-                'From': data.config?.from || 'Not set',
-                'To': data.config?.to || 'Not set',
-                'User': data.config?.user || 'Not set',
-                '--- Overall Status ---': '',
-                'All Valid': data.allValid ? '✅ Ready to send emails' : '❌ Configuration issues found'
-            };
-            
-            displayInfo('Email Validation', validationInfo);
-            
-            if (!data.allValid) {
-                alert('❌ Email configuration has issues. Check the validation results and fix your .env file.');
-            } else {
-                alert('✅ Email configuration looks good! You can now test email notifications.');
-            }
-        } catch (error) {
-            console.error('Email validation error:', error);
-            displayInfo('Error', { 'Message': 'Failed to validate Email setup' });
-        }
-    };
+    // Email validation removed - Telegram-only notifications
 
     function displayInfo(title, data) {
         let content = `<h4>${title}</h4><pre>`;

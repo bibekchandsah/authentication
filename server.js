@@ -259,8 +259,8 @@ const requireAuth = (req, res, next) => {
   if (req.session && req.session.authenticated) {
     return next();
   } else {
-    console.log(`❌ Auth failed - redirecting to login`);
-    return res.redirect('/login');
+    console.log(`❌ Auth failed - showing access denied page`);
+    return res.status(403).sendFile(path.join(__dirname, 'views', 'access-denied.html'));
   }
 };
 
@@ -366,6 +366,16 @@ app.get('/main', requireAuth, (req, res) => {
 // Setup page (HTML)
 app.get('/setup', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'setup.html'));
+});
+
+// Access denied page (can be accessed directly)
+app.get('/access-denied', (req, res) => {
+  res.status(403).sendFile(path.join(__dirname, 'views', 'access-denied.html'));
+});
+
+// 404 page (can be accessed directly for testing)
+app.get('/404', (req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
 });
 
 // Get setup information for Microsoft Authenticator (API)
@@ -687,6 +697,43 @@ app.get('/session-info', requireAuth, (req, res) => {
     warningThreshold: SESSION_CONFIG.warningTime / 1000 / 60, // minutes
     autoExtend: true
   });
+});
+
+// API endpoint to log access attempts (for access denied page)
+app.post('/api/log-access-attempt', (req, res) => {
+  const { page, timestamp, userAgent } = req.body;
+  const clientIP = getClientIP(req);
+  
+  console.log(`🚫 Unauthorized access attempt: ${clientIP} tried to access ${page}`);
+  
+  // Log the unauthorized access attempt
+  const { addSecurityLog } = require('./services/loggingService');
+  addSecurityLog('unauthorized_access', {
+    ip: clientIP,
+    page: page,
+    userAgent: userAgent,
+    timestamp: timestamp,
+    message: 'Unauthorized access attempt to protected resource'
+  });
+  
+  res.json({ success: true, logged: true });
+});
+
+// 404 Handler - Must be after all other routes
+app.use('*', (req, res) => {
+  console.log(`🔍 404 - Page not found: ${req.originalUrl} from IP: ${getClientIP(req)}`);
+  
+  // Log 404 attempts
+  const { addSecurityLog } = require('./services/loggingService');
+  addSecurityLog('page_not_found', {
+    ip: getClientIP(req),
+    url: req.originalUrl,
+    method: req.method,
+    userAgent: req.headers['user-agent'] || '',
+    message: 'Attempted to access non-existent page'
+  });
+  
+  res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
 });
 
 // Start server

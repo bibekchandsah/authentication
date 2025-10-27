@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Page Not Found - Secure Webpage</title>
+    <link rel="stylesheet" href="/css/error.css">
+</head>
+
+<body>
+    <div class="error-container">
+        <div class="error-content">
+            <div class="error-icon">
+                <div class="icon-404">🔍</div>
+            </div>
+
+            <div class="error-info">
+                <h1 class="error-code">404</h1>
+                <h2 class="error-title">Page Not Found</h2>
+                <p class="error-message">
+                    The page you're looking for doesn't exist or has been moved.
+                </p>
+
+                <div class="error-details">
+                    <div class="detail-item">
+                        <span class="detail-icon">🌐</span>
+                        <span class="detail-text">The requested URL was not found on this server</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">🔒</span>
+                        <span class="detail-text">This is a secure authentication system</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="error-actions">
+                <a href="/login" class="action-btn primary">
+                    🔐 Go to Login
+                </a>
+                <a href="/" class="action-btn secondary">
+                    🏠 Home Page
+                </a>
+                <button onclick="history.back()" class="action-btn secondary">
+                    ⬅️ Go Back
+                </button>
+            </div>
+
+            <div class="error-help">
+                <h3>🤔 What can you do?</h3>
+                <ul>
+                    <li>Check the URL for typos</li>
+                    <li>Use the navigation links above</li>
+                    <li>Contact the administrator if you believe this is an error</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="error-footer">
+            <p>🔐 Secure Webpage System | Built by <strong>Bibek Sha</strong></p>
+            <p class="timestamp">Error occurred at: <span id="timestamp"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // Display current timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+
+        // Add some interactive effects
+        document.querySelector('.icon-404').addEventListener('click', function () {
+            this.style.transform = 'rotate(360deg)';
+            setTimeout(() => {
+                this.style.transform = 'rotate(0deg)';
+            }, 500);
+        });
+    </script>
+</body>
+
+</html>
