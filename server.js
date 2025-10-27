@@ -39,39 +39,36 @@ const { sendSecurityNotification, testNotifications, getNotificationSettings } =
 const { validateTelegramConfig } = require('./services/telegramService');
 const { validateEmailConfig } = require('./services/emailService');
 
-// Function to get or create persistent secret key
+// Function to get or create persistent secret key from environment
 function getOrCreateSecret() {
+  // First, try to get secret from environment variable
+  if (process.env.TOTP_SECRET) {
+    console.log('🔑 Using TOTP secret from environment variable');
+    return process.env.TOTP_SECRET;
+  }
+
+  // Fallback: try to read from existing file (for backward compatibility)
   try {
-    // Try to read existing secret
     if (fs.existsSync(SECRET_FILE)) {
       const data = fs.readFileSync(SECRET_FILE, 'utf8');
       const secretData = JSON.parse(data);
-      console.log('📂 Using existing secret key from file');
+      console.log('📂 Using existing secret key from file (consider moving to .env)');
       return secretData.secret;
     }
   } catch (error) {
-    console.log('⚠️ Could not read existing secret, generating new one');
+    console.log('⚠️ Could not read existing secret file');
   }
 
-  // Generate new secret if file doesn't exist or is corrupted
+  // Generate new secret if neither environment nor file exists
   const secret = speakeasy.generateSecret({
     name: SERVICE_NAME,
     issuer: 'SecureWebApp',
     length: 32
   });
 
-  // Save the secret to file
-  try {
-    const secretData = {
-      secret: secret.base32,
-      created: new Date().toISOString(),
-      serviceName: SERVICE_NAME
-    };
-    fs.writeFileSync(SECRET_FILE, JSON.stringify(secretData, null, 2));
-    console.log('💾 New secret key generated and saved');
-  } catch (error) {
-    console.error('❌ Failed to save secret key:', error.message);
-  }
+  console.log('💾 New secret key generated');
+  console.log('⚠️ IMPORTANT: Add this to your .env file as TOTP_SECRET=' + secret.base32);
+  console.log('⚠️ Without this, your secret will change on every restart!');
 
   return secret.base32;
 }
@@ -177,20 +174,11 @@ function regenerateSecret() {
     length: 32
   });
 
-  try {
-    const secretData = {
-      secret: secret.base32,
-      created: new Date().toISOString(),
-      serviceName: SERVICE_NAME,
-      regenerated: true
-    };
-    fs.writeFileSync(SECRET_FILE, JSON.stringify(secretData, null, 2));
-    console.log('🔄 Secret key regenerated and saved');
-    return secret.base32;
-  } catch (error) {
-    console.error('❌ Failed to save regenerated secret key:', error.message);
-    throw error;
-  }
+  console.log('🔄 Secret key regenerated');
+  console.log('⚠️ IMPORTANT: Update your .env file with: TOTP_SECRET=' + secret.base32);
+  console.log('⚠️ Also update this in your deployment platform (Render, Railway, etc.)');
+  
+  return secret.base32;
 }
 
 // Middleware
@@ -450,17 +438,23 @@ app.post('/admin/regenerate-secret', requireAuth, (req, res) => {
 // Admin: Get current secret info (protected)
 app.get('/admin/secret-info', requireAuth, (req, res) => {
   try {
-    let secretInfo = { secret: TOTP_SECRET, created: 'Unknown' };
+    let secretInfo = {
+      secret: TOTP_SECRET,
+      source: process.env.TOTP_SECRET ? 'environment' : 'generated',
+      serviceName: SERVICE_NAME,
+      created: 'Unknown'
+    };
 
+    // Try to get creation date from file if it exists (backward compatibility)
     if (fs.existsSync(SECRET_FILE)) {
-      const data = fs.readFileSync(SECRET_FILE, 'utf8');
-      const secretData = JSON.parse(data);
-      secretInfo = {
-        secret: secretData.secret,
-        created: secretData.created,
-        serviceName: secretData.serviceName,
-        regenerated: secretData.regenerated || false
-      };
+      try {
+        const data = fs.readFileSync(SECRET_FILE, 'utf8');
+        const secretData = JSON.parse(data);
+        secretInfo.created = secretData.created;
+        secretInfo.fileBackup = true;
+      } catch (error) {
+        // Ignore file read errors
+      }
     }
 
     res.json(secretInfo);
