@@ -12,8 +12,20 @@ function generateTelegramMessage(type, logEntry) {
              `✅ <b>Successful Login</b>\n` +
              `🕐 Time: ${timestamp}\n` +
              `🌐 IP: <code>${logEntry.ip}</code>\n` +
-             `💻 Device: ${deviceInfo}\n` +
+             `🏙️ City: ${logEntry.city || 'Unknown'}\n` +
+             `🗺️ Region: ${logEntry.region || 'Unknown'}\n` +
+             `🌍 Country: ${logEntry.country || 'Unknown'} (${logEntry.countryCode || 'XX'})\n` +
              `📍 Location: ${locationInfo}\n` +
+             `📮 Postal: ${logEntry.postal || 'Unknown'}\n` +
+             `🕒 Timezone: ${logEntry.timezone || 'Unknown'}\n` +
+             `📡 ISP: ${logEntry.isp || logEntry.org || 'Unknown'}\n` +
+             `🏢 Organization: ${logEntry.org || 'Unknown'}\n` +
+             `📐 Coordinates: ${logEntry.latitude && logEntry.longitude ? `${logEntry.latitude}, ${logEntry.longitude}` : 'Unknown'}\n` +
+             `💻 Browser: ${logEntry.browser || 'Unknown'}\n` +
+             `🖥️ OS: ${logEntry.os || 'Unknown'}\n` +
+             `📱 Device: ${logEntry.device || 'Unknown'}\n` +
+             `🌐 User Agent: <code>${(logEntry.userAgent || 'Unknown').substring(0, 50)}...</code>\n` +
+             `🗣️ Language: ${logEntry.acceptLanguage || 'Unknown'}\n` +
              `🔑 Session: ${logEntry.sessionId?.substring(0, 8)}...\n\n` +
              `<i>Secure Webpage - Bibek Sha</i>`;
 
@@ -22,8 +34,14 @@ function generateTelegramMessage(type, logEntry) {
              `⚠️ <b>Rate Limited Access</b>\n` +
              `🕐 Time: ${timestamp}\n` +
              `🌐 IP: <code>${logEntry.ip}</code>\n` +
-             `💻 Device: ${deviceInfo}\n` +
+             `🏙️ City: ${logEntry.city || 'Unknown'}\n` +
+             `🗺️ Region: ${logEntry.region || 'Unknown'}\n` +
+             `🌍 Country: ${logEntry.country || 'Unknown'} (${logEntry.countryCode || 'XX'})\n` +
              `📍 Location: ${locationInfo}\n` +
+             `📡 ISP: ${logEntry.isp || logEntry.org || 'Unknown'}\n` +
+             `💻 Browser: ${logEntry.browser || 'Unknown'}\n` +
+             `🖥️ OS: ${logEntry.os || 'Unknown'}\n` +
+             `📱 Device: ${logEntry.device || 'Unknown'}\n` +
              `🔢 Attempts: ${logEntry.totalAttempts}\n` +
              `⏰ Locked for: ${logEntry.remainingTime} minutes\n\n` +
              `<i>Possible brute force attack detected</i>`;
@@ -33,6 +51,10 @@ function generateTelegramMessage(type, logEntry) {
              `⚙️ <b>${logEntry.action}</b>\n` +
              `🕐 Time: ${timestamp}\n` +
              `🌐 IP: <code>${logEntry.ip}</code>\n` +
+             `🏙️ City: ${logEntry.city || 'Unknown'}\n` +
+             `🗺️ Region: ${logEntry.region || 'Unknown'}\n` +
+             `🌍 Country: ${logEntry.country || 'Unknown'}\n` +
+             `📡 ISP: ${logEntry.isp || logEntry.org || 'Unknown'}\n` +
              `💻 Device: ${deviceInfo}\n` +
              `📝 Details: ${logEntry.details}\n\n` +
              `<i>Administrative action performed</i>`;
@@ -78,10 +100,20 @@ function generateEmailHTML(type, logEntry) {
           <table style="width: 100%; border-collapse: collapse;">
             <tr><td style="padding: 8px 0; font-weight: bold;">Time:</td><td>${timestamp}</td></tr>
             <tr><td style="padding: 8px 0; font-weight: bold;">IP Address:</td><td><code>${logEntry.ip}</code></td></tr>
-            <tr><td style="padding: 8px 0; font-weight: bold;">Browser:</td><td>${logEntry.browser}</td></tr>
-            <tr><td style="padding: 8px 0; font-weight: bold;">Operating System:</td><td>${logEntry.os}</td></tr>
-            <tr><td style="padding: 8px 0; font-weight: bold;">Device Type:</td><td>${logEntry.device}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">City:</td><td>${logEntry.city || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Region:</td><td>${logEntry.region || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Country:</td><td>${logEntry.country || 'Unknown'} (${logEntry.countryCode || 'XX'})</td></tr>
             <tr><td style="padding: 8px 0; font-weight: bold;">Location:</td><td>${locationInfo}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Postal Code:</td><td>${logEntry.postal || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Timezone:</td><td>${logEntry.timezone || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">ISP:</td><td>${logEntry.isp || logEntry.org || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Organization:</td><td>${logEntry.org || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Coordinates:</td><td>${logEntry.latitude && logEntry.longitude ? `${logEntry.latitude}, ${logEntry.longitude}` : 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Browser:</td><td>${logEntry.browser || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Operating System:</td><td>${logEntry.os || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Device Type:</td><td>${logEntry.device || 'Unknown'}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">User Agent:</td><td><code style="font-size: 11px;">${(logEntry.userAgent || 'Unknown').substring(0, 80)}...</code></td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Accept Language:</td><td>${logEntry.acceptLanguage || 'Unknown'}</td></tr>
             {additionalRows}
           </table>
           {additionalContent}
@@ -171,8 +203,20 @@ function generateEmailText(type, logEntry) {
       return `SECURITY ALERT: Successful Login Detected\n\n` +
              `Time: ${timestamp}\n` +
              `IP Address: ${logEntry.ip}\n` +
-             `Device: ${deviceInfo}\n` +
+             `City: ${logEntry.city || 'Unknown'}\n` +
+             `Region: ${logEntry.region || 'Unknown'}\n` +
+             `Country: ${logEntry.country || 'Unknown'} (${logEntry.countryCode || 'XX'})\n` +
              `Location: ${locationInfo}\n` +
+             `Postal Code: ${logEntry.postal || 'Unknown'}\n` +
+             `Timezone: ${logEntry.timezone || 'Unknown'}\n` +
+             `ISP: ${logEntry.isp || logEntry.org || 'Unknown'}\n` +
+             `Organization: ${logEntry.org || 'Unknown'}\n` +
+             `Coordinates: ${logEntry.latitude && logEntry.longitude ? `${logEntry.latitude}, ${logEntry.longitude}` : 'Unknown'}\n` +
+             `Browser: ${logEntry.browser || 'Unknown'}\n` +
+             `Operating System: ${logEntry.os || 'Unknown'}\n` +
+             `Device Type: ${logEntry.device || 'Unknown'}\n` +
+             `User Agent: ${(logEntry.userAgent || 'Unknown').substring(0, 100)}...\n` +
+             `Accept Language: ${logEntry.acceptLanguage || 'Unknown'}\n` +
              `Session: ${logEntry.sessionId?.substring(0, 8)}...\n\n` +
              `If this login was not authorized, please check your system immediately.\n\n` +
              `Secure Webpage System - Bibek Sha`;
@@ -182,7 +226,13 @@ function generateEmailText(type, logEntry) {
              `Possible brute force attack detected!\n\n` +
              `Time: ${timestamp}\n` +
              `IP: ${logEntry.ip}\n` +
-             `Device: ${deviceInfo}\n` +
+             `City: ${logEntry.city || 'Unknown'}\n` +
+             `Region: ${logEntry.region || 'Unknown'}\n` +
+             `Country: ${logEntry.country || 'Unknown'}\n` +
+             `ISP: ${logEntry.isp || logEntry.org || 'Unknown'}\n` +
+             `Browser: ${logEntry.browser || 'Unknown'}\n` +
+             `Operating System: ${logEntry.os || 'Unknown'}\n` +
+             `Device Type: ${logEntry.device || 'Unknown'}\n` +
              `Failed Attempts: ${logEntry.totalAttempts}\n` +
              `Locked for: ${logEntry.remainingTime} minutes`;
 
@@ -190,7 +240,13 @@ function generateEmailText(type, logEntry) {
       return `ADMIN ACTION: ${logEntry.action}\n\n` +
              `Time: ${timestamp}\n` +
              `IP: ${logEntry.ip}\n` +
-             `Device: ${deviceInfo}\n` +
+             `City: ${logEntry.city || 'Unknown'}\n` +
+             `Region: ${logEntry.region || 'Unknown'}\n` +
+             `Country: ${logEntry.country || 'Unknown'}\n` +
+             `ISP: ${logEntry.isp || logEntry.org || 'Unknown'}\n` +
+             `Browser: ${logEntry.browser || 'Unknown'}\n` +
+             `Operating System: ${logEntry.os || 'Unknown'}\n` +
+             `Device Type: ${logEntry.device || 'Unknown'}\n` +
              `Details: ${logEntry.details}`;
 
     default:
