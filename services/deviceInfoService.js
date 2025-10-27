@@ -33,13 +33,21 @@ const { getLocationInfo } = require('./locationService');
 
 // Function to get client IP address
 function getClientIP(req) {
-  return req.headers['x-forwarded-for'] ||
+  let ip = req.headers['x-forwarded-for'] ||
     req.headers['x-real-ip'] ||
     req.connection.remoteAddress ||
     req.socket.remoteAddress ||
     (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
     req.ip ||
     '127.0.0.1';
+  
+  // Handle comma-separated IPs (common with proxies/load balancers)
+  if (typeof ip === 'string' && ip.includes(',')) {
+    // Take the first IP (original client IP)
+    ip = ip.split(',')[0].trim();
+  }
+  
+  return ip;
 }
 
 // Enhanced device fingerprinting with async location lookup

@@ -54,7 +54,10 @@ function initializeEmailTransporter() {
         host: NOTIFICATION_CONFIG.email.host,
         port: NOTIFICATION_CONFIG.email.port,
         secure: NOTIFICATION_CONFIG.email.secure,
-        auth: NOTIFICATION_CONFIG.email.auth
+        auth: NOTIFICATION_CONFIG.email.auth,
+        connectionTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 10000,
+        greetingTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 10000,
+        socketTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 10000
       });
       
       console.log('📧 Email notifications configured successfully');

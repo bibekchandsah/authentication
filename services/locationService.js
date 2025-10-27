@@ -24,7 +24,13 @@ if (IPINFO_CONFIG.enabled && IPINFO_CONFIG.token && IPINFO_CONFIG.token !== 'you
 
 // Function to check if IP is local/private
 function isLocalIP(ip) {
-  if (!ip) return true;
+  if (!ip || typeof ip !== 'string') return true;
+  
+  // Clean the IP (remove any extra whitespace)
+  ip = ip.trim();
+  
+  // Check for invalid IP format
+  if (ip.includes(',') || ip.length === 0) return true;
   
   // Local/private IP ranges
   const localPatterns = [
@@ -110,6 +116,12 @@ function cacheLocation(ip, data) {
 async function getEnhancedLocationInfo(ip) {
   // Check if IP is local first
   if (isLocalIP(ip)) {
+    return getBasicLocationInfo(ip);
+  }
+  
+  // Validate IP format
+  if (!ip || typeof ip !== 'string' || ip.includes(',')) {
+    console.log(`⚠️ Invalid IP format: ${ip}`);
     return getBasicLocationInfo(ip);
   }
   
