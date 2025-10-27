@@ -1,13 +1,6 @@
 const { sendTelegramNotification } = require('./telegramService');
-const { sendEmailNotification } = require('./emailService');
-const { sendSendGridEmail } = require('./sendgridService');
 const { getNotificationConfig } = require('./notificationService');
-const { 
-  generateTelegramMessage, 
-  generateEmailSubject, 
-  generateEmailHTML, 
-  generateEmailText 
-} = require('./notificationTemplates');
+const { generateTelegramMessage } = require('./notificationTemplates');
 
 // Main notification function that coordinates all notification services
 async function sendSecurityNotification(type, logEntry) {
@@ -28,35 +21,8 @@ async function sendSecurityNotification(type, logEntry) {
       }
     }
 
-    // Generate Email content (try SendGrid first, fallback to Gmail)
-    if (config.email.enabled) {
-      const emailSubject = generateEmailSubject(type, logEntry);
-      const emailHtml = generateEmailHTML(type, logEntry);
-      const emailText = generateEmailText(type, logEntry);
-      
-      if (emailSubject && emailHtml && emailText) {
-        // Smart email sending with fallback
-        promises.push(
-          (async () => {
-            try {
-              // Try SendGrid first
-              const sendGridResult = await sendSendGridEmail(emailSubject, emailHtml, emailText);
-              if (sendGridResult) {
-                return true;
-              }
-              
-              // If SendGrid not configured or failed, try Gmail SMTP
-              console.log('⚠️ SendGrid not available, trying Gmail SMTP...');
-              return await sendEmailNotification(emailSubject, emailHtml, emailText);
-              
-            } catch (error) {
-              console.error('❌ All email methods failed:', error.message);
-              return false;
-            }
-          })()
-        );
-      }
-    }
+    // All notifications are Telegram-only now
+    console.log(`📱 Using Telegram-only notifications for: ${type}`);
 
     // Send all notifications
     if (promises.length > 0) {
@@ -69,34 +35,24 @@ async function sendSecurityNotification(type, logEntry) {
   }
 }
 
-// Test notifications function
+// Test notifications function (Telegram only)
 async function testNotifications(type, clientIP, deviceInfo) {
-  const promises = [];
   const results = {};
 
-  if (type === 'telegram' || type === 'both') {
-    const { testTelegramNotification } = require('./telegramService');
-    promises.push(
-      testTelegramNotification(clientIP, deviceInfo)
-        .then(result => { results.telegram = result; })
-        .catch(error => { results.telegram = false; })
-    );
+  // Only test Telegram notifications
+  const { testTelegramNotification } = require('./telegramService');
+  try {
+    results.telegram = await testTelegramNotification(clientIP, deviceInfo);
+    console.log('📱 Telegram test notification completed');
+  } catch (error) {
+    results.telegram = false;
+    console.error('❌ Telegram test failed:', error.message);
   }
 
-  if (type === 'email' || type === 'both') {
-    const { testEmailNotification } = require('./emailService');
-    promises.push(
-      testEmailNotification(clientIP, deviceInfo)
-        .then(result => { results.email = result; })
-        .catch(error => { results.email = false; })
-    );
-  }
-
-  await Promise.all(promises);
   return results;
 }
 
-// Get notification settings
+// Get notification settings (Telegram only)
 function getNotificationSettings() {
   const config = getNotificationConfig();
   
@@ -106,11 +62,8 @@ function getNotificationSettings() {
       enabled: config.telegram.enabled,
       configured: !!(config.telegram.botToken && config.telegram.chatId)
     },
-    email: {
-      enabled: config.email.enabled,
-      configured: !!(config.email.auth.user && config.email.to)
-    },
-    notifications: config.notifications
+    notifications: config.notifications,
+    type: 'telegram-only'
   };
 }
 

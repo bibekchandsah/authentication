@@ -1,10 +1,7 @@
 // Load environment variables
 require('dotenv').config();
 
-const nodemailer = require('nodemailer');
-const axios = require('axios');
-
-// Notification configuration
+// Notification configuration (Telegram only)
 const NOTIFICATION_CONFIG = {
   enabled: true,
   telegram: {
@@ -12,19 +9,6 @@ const NOTIFICATION_CONFIG = {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
     chatId: process.env.TELEGRAM_CHAT_ID || '',
     apiUrl: 'https://api.telegram.org/bot'
-  },
-  email: {
-    enabled: process.env.EMAIL_ENABLED === 'true' || false,
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    host: process.env.EMAIL_HOST || '',
-    port: process.env.EMAIL_PORT || 587,
-    secure: process.env.EMAIL_SECURE === 'true' || false,
-    auth: {
-      user: process.env.EMAIL_USER || '',
-      pass: process.env.EMAIL_PASS || ''
-    },
-    from: process.env.EMAIL_FROM || '',
-    to: process.env.EMAIL_TO || ''
   },
   notifications: {
     loginSuccess: true,
@@ -35,81 +19,15 @@ const NOTIFICATION_CONFIG = {
   }
 };
 
-// Email transporter setup
-let emailTransporter = null;
-
-function initializeEmailTransporter() {
-  if (NOTIFICATION_CONFIG.email.enabled && NOTIFICATION_CONFIG.email.auth.user) {
-    try {
-      console.log('🔍 Email Debug Info:');
-      console.log('- Service:', NOTIFICATION_CONFIG.email.service);
-      console.log('- User:', NOTIFICATION_CONFIG.email.auth.user);
-      console.log('- From:', NOTIFICATION_CONFIG.email.from);
-      console.log('- To:', NOTIFICATION_CONFIG.email.to);
-      console.log('- Host:', NOTIFICATION_CONFIG.email.host || 'Using service default');
-      console.log('- Port:', NOTIFICATION_CONFIG.email.port);
-
-      // Try alternative Gmail configuration for cloud hosting
-      const gmailConfig = {
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // Use STARTTLS
-        auth: NOTIFICATION_CONFIG.email.auth,
-        connectionTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
-        greetingTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
-        socketTimeout: parseInt(process.env.EMAIL_TIMEOUT) || 30000,
-        // Cloud hosting optimizations
-        pool: false, // Disable connection pooling for cloud
-        maxConnections: 1,
-        requireTLS: true,
-        tls: {
-          rejectUnauthorized: false // Allow self-signed certificates
-        }
-      };
-
-      emailTransporter = nodemailer.createTransport(gmailConfig);
-
-      console.log('📧 Email notifications configured successfully');
-
-      // Test the connection with timeout
-      const connectionTimeout = setTimeout(() => {
-        console.log('⏳ Email connection test taking longer than expected...');
-      }, 15000);
-
-      emailTransporter.verify((error, success) => {
-        clearTimeout(connectionTimeout);
-        if (error) {
-          console.error('❌ Email connection test failed:', error.message);
-        } else {
-          console.log('✅ Email server connection verified');
-        }
-      });
-
-    } catch (error) {
-      console.error('❌ Email configuration error:', error.message);
-      emailTransporter = null;
-    }
-  } else {
-    console.log('⚠️ Email notifications disabled or not configured');
-  }
-}
-
-// Initialize email transporter
-initializeEmailTransporter();
+// Initialize Telegram-only notification system
+console.log('📱 Telegram-only notification system initialized');
 
 // Export configuration for external access
 function getNotificationConfig() {
   return NOTIFICATION_CONFIG;
 }
 
-// Export email transporter for external access
-function getEmailTransporter() {
-  return emailTransporter;
-}
-
 module.exports = {
   NOTIFICATION_CONFIG,
-  getNotificationConfig,
-  getEmailTransporter,
-  initializeEmailTransporter
+  getNotificationConfig
 };

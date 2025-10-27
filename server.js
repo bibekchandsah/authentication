@@ -37,7 +37,6 @@ initializeLogging();
 // Import notification services
 const { sendSecurityNotification, testNotifications, getNotificationSettings } = require('./services/notificationManager');
 const { validateTelegramConfig } = require('./services/telegramService');
-const { validateEmailConfig } = require('./services/emailService');
 
 // Function to get or create persistent secret key from environment
 function getOrCreateSecret() {
@@ -593,10 +592,7 @@ app.get('/admin/notification-settings', requireAuth, (req, res) => {
   res.json(getNotificationSettings());
 });
 
-// Admin: Validate Email setup (protected)
-app.get('/admin/validate-email', requireAuth, (req, res) => {
-  res.json(validateEmailConfig());
-});
+// Email validation removed - Telegram-only notifications
 
 // Admin: Validate Telegram setup (protected)
 app.get('/admin/validate-telegram', requireAuth, (req, res) => {
@@ -624,6 +620,8 @@ app.post('/admin/test-notifications', requireAuth, async (req, res) => {
     });
   }
 });
+
+
 
 
 
