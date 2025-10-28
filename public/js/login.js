@@ -114,11 +114,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     e.target.classList.remove('filled');
                 }
 
-                // Auto-submit when all digits are filled
+                // Auto-submit when all digits are filled (with delay to show any errors)
                 if (getAuthCode().length === 6) {
                     setTimeout(() => {
                         loginForm.dispatchEvent(new Event('submit'));
-                    }, 100);
+                    }, 300);
                 }
             });
 
@@ -153,11 +153,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
 
-                    // Focus last input and auto-submit
+                    // Focus last input and auto-submit (with delay to show any errors)
                     digitInputs[5].focus();
                     setTimeout(() => {
                         loginForm.dispatchEvent(new Event('submit'));
-                    }, 100);
+                    }, 300);
                 }
             });
 
@@ -187,10 +187,8 @@ document.addEventListener('DOMContentLoaded', function () {
             input.classList.remove('filled');
         });
 
-        setTimeout(() => {
-            clearInputStyles();
-            digitInputs[0].focus();
-        }, 1000);
+        // Don't auto-clear error styles - let user manually clear by typing
+        // This gives them time to read the error message
     }
 
     function showInputSuccess() {
@@ -223,19 +221,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function showError(message) {
-        errorMessage.textContent = message;
+    function showError(message, persistent = false) {
+        if (persistent) {
+            // For persistent errors, add a dismiss button
+            errorMessage.innerHTML = `
+                <div class="error-content">
+                    <span class="error-text">${message}</span>
+                    <button class="error-dismiss" onclick="hideError()" title="Dismiss">×</button>
+                </div>
+            `;
+        } else {
+            errorMessage.textContent = message;
+        }
+
         errorMessage.style.display = 'block';
 
-        // Auto-hide error after 5 seconds
-        setTimeout(() => {
-            hideError();
-        }, 5000);
+        // Don't auto-hide persistent errors (like OAuth errors)
+        if (!persistent) {
+            // Auto-hide error after 8 seconds (increased from 5 to give users more time to read)
+            setTimeout(() => {
+                hideError();
+            }, 8000);
+        }
     }
 
     function hideError() {
         errorMessage.style.display = 'none';
     }
+
+    // Make hideError globally accessible for dismiss button
+    window.hideError = hideError;
 
     function showRateLimit(message, remainingMinutes, lockedUntil) {
         rateLimitMessage.innerHTML = `
@@ -341,11 +356,22 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Clear rate limit message when user starts typing (if not locked)
+    // But keep OAuth error messages visible longer
     digitInputs.forEach(input => {
         input.addEventListener('input', function () {
             if (!input.disabled) {
                 hideRateLimit();
-                hideError();
+                // Don't auto-hide OAuth errors when user starts typing
+                // Only hide regular login errors after user types second digit
+                const urlParams = new URLSearchParams(window.location.search);
+                const hasOAuthError = urlParams.get('error');
+
+                if (!hasOAuthError) {
+                    const filledCount = Array.from(digitInputs).filter(inp => inp.value).length;
+                    if (filledCount > 1) {
+                        hideError();
+                    }
+                }
             }
         });
     });
@@ -381,15 +407,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (error) {
             if (error === 'unauthorized') {
-                showError(message || 'Unauthorized email address. Only the authorized Google account can access this system.');
+                showError(message || 'Unauthorized email address. Only the authorized Google account can access this system.', true);
             } else if (error === 'oauth_error') {
-                showError(message || 'Google authentication failed. Please try again.');
+                showError(message || 'Google authentication failed. Please try again.', true);
             } else {
-                showError('Authentication error occurred. Please try again.');
+                showError('Authentication error occurred. Please try again.', true);
             }
 
-            // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
+            // Clean up URL after a longer delay to ensure error message stays visible
+            setTimeout(() => {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }, 15000); // Increased from 500ms to 15 seconds
         }
     }
 

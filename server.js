@@ -40,7 +40,7 @@ const { sendSecurityNotification, testNotifications, getNotificationSettings } =
 const { validateTelegramConfig } = require('./services/telegramService');
 
 // Import Google OAuth service
-const { initializeGoogleAuth, isGoogleAuthConfigured, getGoogleAuthStatus } = require('./services/googleAuthServicee');
+const { initializeGoogleAuth, isGoogleAuthConfigured, getGoogleAuthStatus } = require('./services/googleAuthService');
 
 // Function to get or create persistent secret key from environment
 function getOrCreateSecret() {
