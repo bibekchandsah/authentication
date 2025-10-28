@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const session = require('express-session');
+const passport = require('passport');
 const path = require('path');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
@@ -37,6 +38,9 @@ initializeLogging();
 // Import notification services
 const { sendSecurityNotification, testNotifications, getNotificationSettings } = require('./services/notificationManager');
 const { validateTelegramConfig } = require('./services/telegramService');
+
+// Import Google OAuth service
+const { initializeGoogleAuth, isGoogleAuthConfigured, getGoogleAuthStatus } = require('./services/googleAuthServicee');
 
 // Function to get or create persistent secret key from environment
 function getOrCreateSecret() {
@@ -207,6 +211,25 @@ app.use(session({
   name: 'sessionId' // Custom session name
 }));
 
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Initialize Google OAuth (if configured)
+const authMode = process.env.AUTH_MODE || 'totp';
+let googleAuthEnabled = false;
+
+if (authMode === 'google' || authMode === 'both') {
+  googleAuthEnabled = initializeGoogleAuth();
+  if (googleAuthEnabled) {
+    console.log('🌐 Google OAuth authentication enabled');
+  } else {
+    console.log('⚠️ Google OAuth not configured, falling back to TOTP');
+  }
+} else {
+  console.log('📱 TOTP authentication mode enabled');
+}
+
 // Session activity tracking middleware
 app.use((req, res, next) => {
   if (req.session && req.session.authenticated) {
@@ -265,16 +288,85 @@ const requireAuth = (req, res, next) => {
 };
 
 // Routes
-// Login page
+// Login page - unified page with both Google OAuth and TOTP
 app.get('/login', (req, res) => {
   if (req.session && req.session.authenticated) {
     return res.redirect('/main');
   }
+  
+  // Always serve the unified login page
   res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
-// Login POST endpoint with rate limiting and comprehensive logging
+// Google OAuth routes
+app.get('/auth/google', 
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login?error=oauth_error' }),
+  async (req, res) => {
+    try {
+      // Successful authentication
+      const user = req.user;
+      const clientIP = getClientIP(req);
+      
+      req.session.authenticated = true;
+      req.session.user = user.name;
+      req.session.email = user.email;
+      req.session.loginTime = new Date().toISOString();
+      req.session.loginIP = clientIP;
+      req.session.authMethod = 'google';
+      req.session.userProfile = user;
+
+      console.log(`✅ Successful Google OAuth login: ${user.email} from IP: ${clientIP}`);
+
+      // Log successful login
+      const { logSuccessfulLogin } = require('./services/activityLogger');
+      const loginLog = await logSuccessfulLogin(req, req.sessionID);
+
+      // Send instant notification
+      sendSecurityNotification('loginSuccess', loginLog).catch(err =>
+        console.error('Notification error:', err.message)
+      );
+
+      res.redirect('/main');
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      res.redirect('/login?error=oauth_error&message=Authentication failed');
+    }
+  }
+);
+
+// Handle unauthorized Google OAuth attempts
+app.get('/auth/google/unauthorized', (req, res) => {
+  const clientIP = getClientIP(req);
+  console.log(`❌ Unauthorized Google OAuth attempt from IP: ${clientIP}`);
+  
+  // Log unauthorized attempt
+  const { addSecurityLog } = require('./services/loggingService');
+  addSecurityLog('unauthorized_oauth', {
+    ip: clientIP,
+    provider: 'google',
+    userAgent: req.headers['user-agent'] || '',
+    message: 'Unauthorized Google OAuth login attempt'
+  });
+  
+  res.redirect('/login?error=unauthorized&message=Unauthorized email address');
+});
+
+// TOTP Login POST endpoint (for backward compatibility and dual auth mode)
 app.post('/login', async (req, res) => {
+  return handleTOTPLogin(req, res);
+});
+
+// Dedicated TOTP login endpoint
+app.post('/login/totp', async (req, res) => {
+  return handleTOTPLogin(req, res);
+});
+
+// TOTP login handler function
+async function handleTOTPLogin(req, res) {
   const { authCode } = req.body;
   const clientIP = getClientIP(req);
   const userAgent = req.headers['user-agent'] || '';
@@ -354,7 +446,7 @@ app.post('/login', async (req, res) => {
       remainingAttempts: Math.max(0, remainingAttempts)
     });
   }
-});
+}
 
 // Main page (protected)
 app.get('/main', requireAuth, (req, res) => {
@@ -609,6 +701,22 @@ app.get('/admin/validate-telegram', requireAuth, (req, res) => {
   res.json(validateTelegramConfig());
 });
 
+// Admin: Get Google OAuth status (protected)
+app.get('/admin/google-oauth-status', requireAuth, (req, res) => {
+  res.json(getGoogleAuthStatus());
+});
+
+// Get authentication mode info (public - needed for login page)
+app.get('/admin/auth-mode', (req, res) => {
+  res.json({
+    mode: authMode,
+    googleEnabled: googleAuthEnabled,
+    totpEnabled: true,
+    authorizedEmail: process.env.AUTHORIZED_EMAIL ? 'Configured' : 'Not set', // Don't expose actual email
+    currentMode: authMode === 'google' && googleAuthEnabled ? 'Google OAuth' : 'TOTP'
+  });
+});
+
 // Admin: Test notifications (protected)
 app.post('/admin/test-notifications', requireAuth, async (req, res) => {
   const { type } = req.body; // 'telegram', 'email', or 'both'
@@ -630,8 +738,6 @@ app.post('/admin/test-notifications', requireAuth, async (req, res) => {
     });
   }
 });
-
-
 
 
 

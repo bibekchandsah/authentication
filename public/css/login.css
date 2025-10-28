@@ -127,6 +127,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
+    display: none;
 }
 
 .login-btn:hover {
@@ -160,6 +161,7 @@ body {
     padding: 15px;
     border-radius: 8px;
     margin-top: 15px;
+    margin-bottom: 15px;
     border: 1px solid #ffeaa7;
     font-size: 0.9rem;
     text-align: center;
@@ -234,5 +236,122 @@ body {
         width: 40px;
         height: 50px;
         font-size: 1.2rem;
+    }
+}
+/* Google OAuth Section Styles */
+.oauth-section {
+    /* margin: 25px 0;
+    padding: 20px 0; */
+}
+
+.divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    display: none;
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.divider span {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0 15px;
+    color: #666;
+    font-size: 14px;
+    position: relative;
+}
+
+.google-login-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 20px;
+    background: white;
+    border: 2px solid #dadce0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #3c4043;
+    font-weight: 500;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+}
+
+.google-login-btn:hover {
+    background: #f8f9fa;
+    border-color: #dadce0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.google-login-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.google-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.google-text {
+    font-weight: 500;
+}
+
+.auth-note {
+    padding: 12px;
+    background: rgba(255, 193, 7, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+    display: none;
+}
+
+.auth-note p {
+    font-size: 13px;
+    color: #856404;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.note-icon {
+    font-size: 16px;
+}
+
+/* Hide OAuth section by default - show via JavaScript based on auth mode */
+.oauth-section.hidden {
+    display: none;
+}
+
+/* Responsive adjustments for OAuth section */
+@media (max-width: 480px) {
+    .google-login-btn {
+        padding: 12px 16px;
+        font-size: 15px;
+    }
+    
+    .auth-note {
+        padding: 10px;
+    }
+    
+    .auth-note p {
+        font-size: 12px;
     }
 }

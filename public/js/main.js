@@ -453,6 +453,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Show authentication method information
+    window.showAuthInfo = async function() {
+        try {
+            const response = await fetch('/admin/auth-mode');
+            const data = await response.json();
+            
+            const authInfo = {
+                '--- Authentication System ---': '',
+                'Current Mode': data.currentMode || 'Unknown',
+                'Configuration Mode': data.mode.toUpperCase(),
+                'Google OAuth Enabled': data.googleEnabled ? '✅ Yes' : '❌ No',
+                'TOTP Enabled': data.totpEnabled ? '✅ Yes' : '❌ No',
+                'Authorized Email': data.authorizedEmail || 'Not configured',
+                '--- Session Info ---': '',
+                'Login Method': 'Check session details for current login method',
+                'Status': 'Active and authenticated'
+            };
+            
+            displayInfo('Authentication Method Information', authInfo);
+        } catch (error) {
+            console.error('Auth info error:', error);
+            displayInfo('Error', { 'Message': 'Failed to fetch authentication information' });
+        }
+    };
+
     // Email validation removed - Telegram-only notifications
 
     function displayInfo(title, data) {

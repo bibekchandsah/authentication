@@ -1,30 +1,46 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const loginForm = document.getElementById('loginForm');
     const errorMessage = document.getElementById('errorMessage');
     const rateLimitMessage = document.getElementById('rateLimitMessage');
     const loginBtn = loginForm.querySelector('.login-btn');
     const btnText = loginBtn.querySelector('.btn-text');
     const btnLoading = loginBtn.querySelector('.btn-loading');
-    
+
+    // Google OAuth elements
+    const oauthSection = document.getElementById('oauthSection');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+
     // Get all digit input elements
     const digitInputs = document.querySelectorAll('.code-digit');
-    
+
     let rateLimitCountdown = null;
+
+    // Check authentication mode and show/hide OAuth section
+    checkAuthMode();
+
+    // Google login button click tracking
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', function () {
+            console.log('🌐 Initiating Google OAuth login...');
+            hideError();
+            hideRateLimit();
+        });
+    }
 
     // Initialize digit input functionality
     initializeDigitInputs();
 
-    loginForm.addEventListener('submit', async function(e) {
+    loginForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        
+
         const authCode = getAuthCode();
-        
+
         if (!authCode) {
             showError('Please enter your 6-digit authentication code');
             showInputError();
             return;
         }
-        
+
         if (authCode.length !== 6 || !/^\d{6}$/.test(authCode)) {
             showError('Please enter a valid 6-digit code');
             showInputError();
@@ -81,13 +97,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializeDigitInputs() {
         digitInputs.forEach((input, index) => {
             // Handle input
-            input.addEventListener('input', function(e) {
+            input.addEventListener('input', function (e) {
                 const value = e.target.value.replace(/\D/g, ''); // Only allow digits
                 e.target.value = value;
-                
+
                 hideError();
                 clearInputStyles();
-                
+
                 if (value) {
                     e.target.classList.add('filled');
                     // Auto-advance to next input
@@ -97,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     e.target.classList.remove('filled');
                 }
-                
+
                 // Auto-submit when all digits are filled
                 if (getAuthCode().length === 6) {
                     setTimeout(() => {
@@ -107,13 +123,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Handle backspace
-            input.addEventListener('keydown', function(e) {
+            input.addEventListener('keydown', function (e) {
                 if (e.key === 'Backspace' && !e.target.value && index > 0) {
                     digitInputs[index - 1].focus();
                     digitInputs[index - 1].value = '';
                     digitInputs[index - 1].classList.remove('filled');
                 }
-                
+
                 // Handle arrow keys
                 if (e.key === 'ArrowLeft' && index > 0) {
                     digitInputs[index - 1].focus();
@@ -124,10 +140,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Handle paste
-            input.addEventListener('paste', function(e) {
+            input.addEventListener('paste', function (e) {
                 e.preventDefault();
                 const pastedData = e.clipboardData.getData('text').replace(/\D/g, '');
-                
+
                 if (pastedData.length === 6) {
                     // Fill all inputs with pasted data
                     for (let i = 0; i < 6; i++) {
@@ -136,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             digitInputs[i].classList.add('filled');
                         }
                     }
-                    
+
                     // Focus last input and auto-submit
                     digitInputs[5].focus();
                     setTimeout(() => {
@@ -146,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Handle focus
-            input.addEventListener('focus', function() {
+            input.addEventListener('focus', function () {
                 clearInputStyles();
                 hideError();
             });
@@ -170,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
             input.classList.add('error');
             input.classList.remove('filled');
         });
-        
+
         setTimeout(() => {
             clearInputStyles();
             digitInputs[0].focus();
@@ -197,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function setLoadingState(loading) {
         loginBtn.disabled = loading;
         digitInputs.forEach(input => input.disabled = loading);
-        
+
         if (loading) {
             btnText.style.display = 'none';
             btnLoading.style.display = 'inline';
@@ -210,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showError(message) {
         errorMessage.textContent = message;
         errorMessage.style.display = 'block';
-        
+
         // Auto-hide error after 5 seconds
         setTimeout(() => {
             hideError();
@@ -230,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         rateLimitMessage.className = 'rate-limit-message severe';
         rateLimitMessage.style.display = 'block';
-        
+
         // Start countdown timer
         if (remainingMinutes > 0) {
             startCountdown(remainingMinutes);
@@ -257,17 +273,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function startCountdown(minutes) {
         let totalSeconds = minutes * 60;
         const countdownElement = document.getElementById('countdown');
-        
+
         rateLimitCountdown = setInterval(() => {
             const mins = Math.floor(totalSeconds / 60);
             const secs = totalSeconds % 60;
-            
+
             if (countdownElement) {
                 countdownElement.textContent = `Time remaining: ${mins}:${secs.toString().padStart(2, '0')}`;
             }
-            
+
             totalSeconds--;
-            
+
             if (totalSeconds < 0) {
                 clearInterval(rateLimitCountdown);
                 rateLimitCountdown = null;
@@ -280,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function disableForm(disabled) {
         digitInputs.forEach(input => input.disabled = disabled);
         loginBtn.disabled = disabled;
-        
+
         if (disabled) {
             loginBtn.style.opacity = '0.5';
             loginBtn.style.cursor = 'not-allowed';
@@ -295,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch('/rate-limit-status');
             const data = await response.json();
-            
+
             if (data.rateLimited && data.remainingTime > 0) {
                 showRateLimit(
                     `Too many failed attempts. Account locked for ${data.remainingTime} more minutes.`,
@@ -326,11 +342,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Clear rate limit message when user starts typing (if not locked)
     digitInputs.forEach(input => {
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             if (!input.disabled) {
                 hideRateLimit();
                 hideError();
             }
         });
     });
+
+    // Check authentication mode and configure UI accordingly
+    async function checkAuthMode() {
+        try {
+            const response = await fetch('/admin/auth-mode');
+            const data = await response.json();
+
+            // Show OAuth section if Google is enabled
+            if (data.googleEnabled && oauthSection) {
+                oauthSection.classList.remove('hidden');
+                console.log('🌐 Google OAuth enabled');
+            } else if (oauthSection) {
+                oauthSection.classList.add('hidden');
+                console.log('📱 TOTP-only mode');
+            }
+        } catch (error) {
+            console.error('Auth mode check error:', error);
+            // Hide OAuth section on error (fallback to TOTP only)
+            if (oauthSection) {
+                oauthSection.classList.add('hidden');
+            }
+        }
+    }
+
+    // Check for Google OAuth errors in URL parameters
+    function checkOAuthErrors() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const message = urlParams.get('message');
+
+        if (error) {
+            if (error === 'unauthorized') {
+                showError(message || 'Unauthorized email address. Only the authorized Google account can access this system.');
+            } else if (error === 'oauth_error') {
+                showError(message || 'Google authentication failed. Please try again.');
+            } else {
+                showError('Authentication error occurred. Please try again.');
+            }
+
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    // Initialize OAuth error checking
+    checkOAuthErrors();
 });
